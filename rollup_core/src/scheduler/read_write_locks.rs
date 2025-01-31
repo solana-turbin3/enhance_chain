@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ptr::NonNull};
 use solana_sdk::pubkey::Pubkey;
 
 /// Identifier for a thread
@@ -34,6 +34,91 @@ impl ThreadAwareLocks {
             locks : HashMap::new()
         }
     }
+
+    pub fn try_lock_account(
+        &mut self,
+        write_account : Pubkey,
+        read_account : Pubkey,
+    ) {
+        let scheduable_threads = self.accounts_schedulable_threads(write_account, read_account);
+        // self.lock_account(write_account, read_account, scheduable_threads);
+    }
+
+    pub fn accounts_schedulable_threads(
+        &mut self,
+        write_account : Pubkey,
+        read_account : Pubkey,
+    ) {
+        let mut accounts_schedulable_threads: Vec<usize> = Vec::new();
+
+        let act_from_write_accounts = self.schedule_on_threads(write_account);
+        let act_from_read_account = self.schedule_on_threads(read_account);
+
+        accounts_schedulable_threads.push(act_from_write_accounts);
+        accounts_schedulable_threads.push(act_from_read_account);
+    }
+
+    pub fn lock_account(
+        &mut self,
+        write_account : Pubkey,
+        read_account : Pubkey,
+        thread_id : ThreadId
+    ) {
+        assert!(
+            thread_id < self.number_of_thread,
+            "thread_id must be < num_threads"
+        );
+        self.write_lock_account(write_account, thread_id);
+        self.read_account_lock(read_account, thread_id);
+    }
+
+    //1. only read lock applied on the account
+    //2. only write lock applied on the account -> write_lock.thread_id
+    //3. read and write both locks are applied -> write_lock.thread_id
+    //4. none -> none
+    pub fn schedule_on_threads(&mut self, account: Pubkey) -> usize{
+        match self.locks.get(&account) {
+            None => 0,
+            Some(AccountLocks {
+                write_lock : Some(write_lock),
+                read_lock : None
+            }) => write_lock.thread_id,
+            Some(AccountLocks{
+                write_lock : Some(write_lock),
+                read_lock : Some(_read_lock)
+            }) => write_lock.thread_id,
+            Some(AccountLocks{
+                write_lock : None,
+                read_lock : Some(read_lock)
+            }) => self.handle_only_read_condition(read_lock),
+            Some(AccountLocks{
+                write_lock : None,
+                read_lock : None
+            }) => unreachable!()
+        }
+    }
+
+
+     fn handle_only_read_condition(&self, read:&AccountReadLocks) -> usize{
+        // one condition is left that is when write could also happen
+        // then if read happening on only thread then its fine
+        // but if happening on differnet threads the nreturn None
+       let true_indicies : Vec<usize> = read.thread_set.iter()
+       .enumerate()
+       .filter_map(|(i, &bool)| if bool {Some(i)} else {None})
+       .collect();
+    let count = true_indicies.len();
+       if count == 1 {
+       true_indicies[0]
+    } else {
+        //can choose any here
+        //TODO:
+        //can perform some load-balancing here
+        // for now just returning the first element
+        true_indicies[0]
+    }
+    }
+
     pub fn write_lock_account(&mut self, account:Pubkey, thread_id : ThreadId) {
     
     // or_insert*
