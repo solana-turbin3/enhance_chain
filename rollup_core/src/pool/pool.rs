@@ -73,9 +73,16 @@ impl TxFeePayerPools {
         }
     }
 
-    //drain and collect 
+    //IMP-retain
     pub fn deactive_pool(&mut self, id: u64) {
-        self.pools.retain(|pool| pool.pool_id != id);
+         // self.pools.retain(|pool| pool.pool_id != id);
+         if let Some((index, pool)) = self.pools.iter_mut().enumerate().find(|(_, pool)| pool.pool_id == id) {
+            if pool.balance != 0 {
+                panic!("Pool balance is not empty")
+            } else {
+                self.pools.swap_remove(index);
+            }
+        }
     }
     
 }

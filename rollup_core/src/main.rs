@@ -16,6 +16,7 @@ mod scheduler;
 mod line_up_queue;
 mod per_db;
 mod users_handler;
+mod error;
 // #[actix_web::main]
 fn main() {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("debug"));

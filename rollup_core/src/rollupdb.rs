@@ -41,6 +41,7 @@ impl RollupDB {
         while let Ok(message) = rollup_db_receiver.recv() {
             if let Some(accounts_to_lock) = message.lock_accounts {
                 // Lock accounts, by removing them from the accounts_db hashmap, and adding them to locked accounts
+                //IMP
                 let _ = accounts_to_lock.iter().map(|pubkey| {
                     db.locked_accounts
                         .insert(pubkey.clone(), db.accounts_db.remove(pubkey).unwrap())

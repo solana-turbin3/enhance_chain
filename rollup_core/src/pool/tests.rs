@@ -67,6 +67,32 @@ fn deactive_pool() {
     let key_pair2 = Keypair::new();
     let pool = TxFeePayerPool {
         pool_id : 1,
+        balance : 0,
+        key : key_pair1
+    };
+    let mut pools = TxFeePayerPools {
+        pools : vec![pool]
+    };
+    pools.pools.push(
+        TxFeePayerPool{
+            pool_id : 2,
+            balance : 100,
+            key : key_pair2
+        }
+    );
+    assert_eq!(pools.pools.len(),2);
+    pools.deactive_pool(1);
+    assert_eq!(pools.pools.len(),1);
+    assert_eq!(pools.pools[0].pool_id,2) 
+}
+
+#[test]
+#[should_panic(expected="Pool balance is not empty")]
+fn deactive_pool_with_non_zero_balance() {
+    let key_pair1 = Keypair::new();
+    let key_pair2 = Keypair::new();
+    let pool = TxFeePayerPool {
+        pool_id : 1,
         balance : 100,
         key : key_pair1
     };
