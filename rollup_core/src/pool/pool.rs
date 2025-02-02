@@ -5,6 +5,7 @@ pub struct ChainPoolsInfo {
     pub total_global_balance : u64
 }
 
+#[derive(Debug)]
 pub struct TxFeePayerPool {
     pub pool_id: u64,
     pub balance: u64,
@@ -39,7 +40,7 @@ impl TxFeePayerPool {
 impl TxFeePayerPools {
 
     //& and match
-    pub fn get_specific_pool(&self, id: u64) -> Option<&TxFeePayerPool> {
+    pub fn get_specific_pool(&mut self, id: u64) -> Option<&TxFeePayerPool> {
         match self.pools.iter().find(|&pool| pool.pool_id == id) {
             Some(pool) => Some(pool),
             None => {
@@ -59,9 +60,10 @@ impl TxFeePayerPools {
     }
 
     pub fn add_funds_in_a_specific_pool(&mut self, id:u64 , new_balance : u64)-> Option<u64>{
-       match self.pools.iter().find(|pool|pool.pool_id == id) {
+       match self.pools.iter_mut().find(|pool|pool.pool_id == id) {
         Some(pool) => {
             let updated_balance = pool.balance + new_balance;
+            pool.balance = updated_balance;
             Some(updated_balance)
         },
         None => {
@@ -72,14 +74,8 @@ impl TxFeePayerPools {
     }
 
     //drain and collect 
-    pub fn deactive_pool(&mut self, id: u64) -> TxFeePayerPools {
-        let remaining_pools: Vec<TxFeePayerPool> = self.pools
-            .drain(..)
-            .filter(|pool| pool.pool_id != id)
-            .collect();
-    
-        TxFeePayerPools { 
-            pools: remaining_pools 
-        }
+    pub fn deactive_pool(&mut self, id: u64) {
+        self.pools.retain(|pool| pool.pool_id != id);
     }
+    
 }
