@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use solana_sdk::pubkey::Pubkey;
 
 pub struct PERTXS {
-    signatueres : Vec<String>
+    pub signatueres : Vec<String>
 }
 pub struct PerDB {
-    data : HashMap<Pubkey,PERTXS>
+    pub data : HashMap<Pubkey,PERTXS>
 }
 
 pub struct FullPerDB {
-    full_per_db : Vec<PerDB>
+    pub full_per_db : Vec<PerDB>
 }
   
 

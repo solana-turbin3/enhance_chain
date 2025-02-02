@@ -10,7 +10,7 @@ use solana_client::{nonblocking::rpc_client as nonblocking_rpc_client, rpc_clien
 use solana_compute_budget::compute_budget::ComputeBudget;
 use solana_program_runtime::{
     invoke_context::{self, EnvironmentConfig, InvokeContext},
-    loaded_programs::{BlockRelation, ForkGraph, LoadProgramMetrics, ProgramCacheEntry, ProgramCacheForTxBatch, ProgramRuntimeEnvironments}, sysvar_cache, timings::ExecuteTimings,
+    loaded_programs::{BlockRelation, ForkGraph, LoadProgramMetrics, ProgramCacheEntry, ProgramCacheForTxBatch, ProgramRuntimeEnvironments}, sysvar_cache,
 };
 
 use solana_bpf_loader_program::syscalls::create_program_runtime_environment_v1;
@@ -138,16 +138,16 @@ pub fn run(
         log::info!("{:?}", sanitized.clone());
 
 
-        let mut timings = ExecuteTimings::default();
+        // let mut timings = ExecuteTimings::default();
 
         
-        let result_msg = MessageProcessor::process_message(
-            sanitized.unwrap().message(),
-            &vec![],
-            &mut invoke_context,
-            &mut timings,
-            &mut used_cu,
-        );
+        // let result_msg = MessageProcessor::process_message(
+        //     sanitized.unwrap().message(),
+        //     &vec![],
+        //     &mut invoke_context,
+        //     &mut timings,
+        //     &mut used_cu,
+        // );
 
         // Send processed transaction to db for storage and availability
         rollupdb_sender
