@@ -2,6 +2,12 @@ use solana_sdk::pubkey::Pubkey;
 
 use super::read_write_locks::ThreadAwareLocks;
 
+/// LOCKING TESTS ///
+
+//TODO
+//Some(ThreadSet::only(2))
+
+
 // appply multiple read_locks 
 #[test]
 fn test_account_read_locks() {
@@ -95,4 +101,6 @@ fn test_conflict_account_write_lock() {
     )
 }
 
+
+//// SCHEDULING (THREAD-SET) TEST ////
 

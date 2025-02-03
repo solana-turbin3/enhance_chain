@@ -39,13 +39,6 @@ impl ThreadAwareLocks {
         }
     }
 
-    pub fn init(number_of_thread:usize) -> Self {
-        Self {
-            number_of_thread,
-            locks : HashMap::new()
-        }
-    }
-
     pub fn try_lock_account(
         &mut self,
         write_account : Pubkey,
@@ -87,7 +80,7 @@ impl ThreadAwareLocks {
     //2. only write lock applied on the account -> write_lock.thread_id
     //3. read and write both locks are applied -> write_lock.thread_id
     //4. none -> none
-    pub fn schedule_on_threads(&mut self, account: Pubkey) -> usize{
+    pub fn schedule_on_threads(&mut self, account: Pubkey) -> usize {
         match self.locks.get(&account) {
             None => 0,
             Some(AccountLocks {
