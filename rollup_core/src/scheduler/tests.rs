@@ -103,4 +103,34 @@ fn test_conflict_account_write_lock() {
 
 
 //// SCHEDULING (THREAD-SET) TEST ////
+// multi-case
 
+#[test]
+fn test_schedule_on_thread_with_only_write() {
+    const TEST_NUM_THREADS: usize = 4;
+    let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
+
+    let pk1 = Pubkey::new_unique();
+    locks.write_lock_account(pk1, 1);
+
+    let schedulable_thread = locks.schedule_on_threads(pk1);
+    println!("{:?}",schedulable_thread)
+}
+
+#[test]
+fn test_schedule_on_thread_with_read_and_write() {
+    const TEST_NUM_THREADS: usize = 4;
+    let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
+
+    let pk1 = Pubkey::new_unique();
+    locks.write_lock_account(pk1, 1);
+    locks.read_account_lock(pk1, 1);
+    let schedulable_thread = locks.schedule_on_threads(pk1);
+    assert_eq!(
+        schedulable_thread,
+        1
+    );
+    println!("{:?}",schedulable_thread)
+}
+
+//test_accounts_schedulable_threads_outstanding_read_only

@@ -87,10 +87,20 @@ impl ThreadAwareLocks {
                 write_lock : Some(write_lock),
                 read_lock : None
             }) => write_lock.thread_id,
+            // for a account, if both read and write
+            // locks are there then schedulabe thread should only be one
+            // can be related to other errors as well in read&write lock fun as well
+            //below
             Some(AccountLocks{
                 write_lock : Some(write_lock),
-                read_lock : Some(_read_lock)
-            }) => write_lock.thread_id,
+                read_lock : Some(read_lock)
+            }) => {
+                assert_eq!(
+                    write_lock.thread_id,
+                    self.convert_thread_set_into_single_thread_id(read_lock)
+                );
+                write_lock.thread_id
+            },
             Some(AccountLocks{
                 write_lock : None,
                 read_lock : Some(read_lock)
@@ -102,11 +112,26 @@ impl ThreadAwareLocks {
         }
     }
 
+    // pub fn convert_thread_set_into_single_thread_id(&self, read_lock: &AccountReadLocks) -> usize {
+    //     let mut count = 0;
+    //     for &status in &read_lock.thread_set {
+    //         if status {
+    //             count += 1;
+    //         }
+    //     }
+    //     count
+    // }
+
+    pub fn convert_thread_set_into_single_thread_id(&self, read_lock: &AccountReadLocks) -> usize {
+        read_lock.thread_set.iter().filter(|&&status| status).count()
+    }
+    
+    
 
      pub fn handle_only_read_condition(&self, read:&AccountReadLocks) -> usize{
         // one condition is left that is when write could also happen
         // then if read happening on only thread then its fine
-        // but if happening on differnet threads the nreturn None
+        // but if happening on differnet threads the return None
        let true_indicies : Vec<usize> = read.thread_set.iter()
        .enumerate()
        .filter_map(|(i, &bool)| if bool {Some(i)} else {None})
@@ -115,10 +140,12 @@ impl ThreadAwareLocks {
        if count == 1 {
        true_indicies[0]
     } else {
-        //can choose any here
-        //TODO:
-        //can perform some load-balancing here
+        // can choose any here
+        // TODO:
+        // can perform some load-balancing here
         // for now just returning the first element
+        // quesiton -> shouldnt i should return None here ?? but first need to
+        // add write condition
         true_indicies[0]
     }
     }
