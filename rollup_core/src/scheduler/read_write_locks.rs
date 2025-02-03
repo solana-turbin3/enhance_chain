@@ -6,27 +6,38 @@ const MAX_THREAD:usize = 4;
 pub type ThreadId = usize;
 type LockCount = u32;
 
+#[derive(Debug)]
 pub struct AccountWriteLocks {
-    thread_id : ThreadId,
-    lock_count : LockCount
+    pub thread_id : ThreadId,
+    pub lock_count : LockCount
 }
 
+#[derive(Debug)]
 pub struct AccountReadLocks {
-    thread_set : [bool;MAX_THREAD],
-    lock_count : [LockCount;MAX_THREAD]
+    pub thread_set : [bool;MAX_THREAD],
+    pub lock_count : [LockCount;MAX_THREAD]
 }
 
+#[derive(Debug)]
 pub struct AccountLocks {
     pub write_lock : Option<AccountWriteLocks>,
     pub read_lock : Option<AccountReadLocks>
 }
 
+#[derive(Debug)]
 pub struct ThreadAwareLocks {
-    number_of_thread : usize,
-    locks : HashMap<Pubkey,AccountLocks>
+    pub number_of_thread : usize,
+    pub locks : HashMap<Pubkey,AccountLocks>
 }
 
 impl ThreadAwareLocks {
+
+    pub fn new(number_of_thread:usize) -> Self {
+        Self {
+            number_of_thread,
+            locks : HashMap::new()
+        }
+    }
 
     pub fn init(number_of_thread:usize) -> Self {
         Self {
@@ -99,7 +110,7 @@ impl ThreadAwareLocks {
     }
 
 
-     fn handle_only_read_condition(&self, read:&AccountReadLocks) -> usize{
+     pub fn handle_only_read_condition(&self, read:&AccountReadLocks) -> usize{
         // one condition is left that is when write could also happen
         // then if read happening on only thread then its fine
         // but if happening on differnet threads the nreturn None
@@ -131,7 +142,7 @@ impl ThreadAwareLocks {
         read_lock
      } = entry;
 
-     // if onw thread is writing on an account then the 
+     // if one thread is writing on an account then the 
      // other thread shouldnt be reading from it, it should be on the same thread
      if let Some(read_lock) = read_lock {
         let mut thread_set  = [false,false,false,false];
@@ -160,6 +171,7 @@ impl ThreadAwareLocks {
         })
      }
     }
+
     pub fn read_account_lock(&mut self, account: Pubkey, thread_id: ThreadId) {
        let entry = self.locks.entry(account).or_insert(
         AccountLocks {
