@@ -113,7 +113,7 @@ fn test_schedule_on_thread_with_only_write() {
     let pk1 = Pubkey::new_unique();
     locks.write_lock_account(pk1, 1);
 
-    let schedulable_thread = locks.schedule_on_threads(pk1);
+    let schedulable_thread = locks.schedule_on_threads(pk1,true);
     println!("{:?}",schedulable_thread)
 }
 
@@ -125,10 +125,10 @@ fn test_schedule_on_thread_with_read_and_write() {
     let pk1 = Pubkey::new_unique();
     locks.write_lock_account(pk1, 1);
     locks.read_account_lock(pk1, 1);
-    let schedulable_thread = locks.schedule_on_threads(pk1);
+    let schedulable_thread = locks.schedule_on_threads(pk1,true);
     assert_eq!(
         schedulable_thread,
-        1
+        Some(1)
     );
     println!("{:?}",schedulable_thread)
 }
@@ -136,7 +136,7 @@ fn test_schedule_on_thread_with_read_and_write() {
 //test_accounts_schedulable_threads_outstanding_read_only
 
 #[test]
-fn test_accounts_schedulable_threads() {
+fn test_accounts_schedulable_threads_1() {
     let pk1 = Pubkey::new_unique();
     let pk2 = Pubkey::new_unique(); 
 
@@ -146,15 +146,52 @@ fn test_accounts_schedulable_threads() {
     locks.read_account_lock(pk1, 2);
     let scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![pk1,pk2] , vec![]);
 
-    let final_scheduable_thread_for_new_tsx = locks.from_account_schedulablet_thread_from_thread_id_for_account_that_not_create_any_problem(scheduable_thread_for_new_tsx);
-
     assert_eq!(
-        final_scheduable_thread_for_new_tsx.len(),
+        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone()).len(),
         1
     );
     assert_eq!(
-        final_scheduable_thread_for_new_tsx[0],
+        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone())[0],
         2
     );
-    println!("{:?}",final_scheduable_thread_for_new_tsx)
+
+    println!("{:?}",locks.simplefy_threads(scheduable_thread_for_new_tsx))
+
+}
+
+#[test]
+fn test_accounts_schedulable_threads_2() {
+    let pk1 = Pubkey::new_unique();
+    let pk2 = Pubkey::new_unique(); 
+    let ANY_THREAD : usize = 1;
+    const TEST_NUM_THREADS: usize = 4;
+    let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
+
+    locks.read_account_lock(pk1, 2);
+    let scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![] , vec![pk1,pk2]);
+
+    assert_eq!(
+        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone()).len(),
+        1
+    );
+    assert_eq!(
+        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone())[0],
+        ANY_THREAD
+    );
+
+    println!("{:?}",locks.simplefy_threads(scheduable_thread_for_new_tsx))
+
+}
+
+#[test]
+#[should_panic(expected="Cannot schedule because of multi-threading conflict")]
+fn test_accounts_schedulable_threads_3() {
+    let pk1 = Pubkey::new_unique();
+    let pk2 = Pubkey::new_unique(); 
+    const TEST_NUM_THREADS: usize = 4;
+    let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
+
+    locks.read_account_lock(pk1, 1);
+    locks.read_account_lock(pk1, 2);
+    let _scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![pk1,pk2] , vec![]);
 }

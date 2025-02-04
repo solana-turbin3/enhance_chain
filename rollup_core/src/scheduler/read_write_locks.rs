@@ -56,12 +56,12 @@ impl ThreadAwareLocks {
         let mut accounts_schedulable_threads: Vec<usize> = Vec::new();
 
         for account in write_account {
-            let schedulable_threads = self.schedule_on_threads(account);
-            accounts_schedulable_threads.push(schedulable_threads);
+            let schedulable_threads = self.schedule_on_threads(account,true);
+            accounts_schedulable_threads.push(schedulable_threads.unwrap());
         }
         for account in read_account {
-            let schedulable_threads = self.schedule_on_threads(account);
-            accounts_schedulable_threads.push(schedulable_threads);
+            let schedulable_threads = self.schedule_on_threads(account,false);
+            accounts_schedulable_threads.push(schedulable_threads.unwrap());
         }
         accounts_schedulable_threads
     }
@@ -72,7 +72,7 @@ impl ThreadAwareLocks {
     // and here im removing those account thread_id because
     // these account doesnt impact where the parent transaction
     // will be scheduled and to simpleify stuff 
-    pub fn from_account_schedulablet_thread_from_thread_id_for_account_that_not_create_any_problem(&mut self,mut account_schedable_thread: Vec<usize>) -> 
+    pub fn simplefy_threads(&mut self,mut account_schedable_thread: Vec<usize>) -> 
     Vec<usize> {
         let any_thread : usize = 1;
         account_schedable_thread.retain(|&thread_id| thread_id != 100);
@@ -108,14 +108,14 @@ impl ThreadAwareLocks {
     //2. only write lock applied on the account -> write_lock.thread_id
     //3. read and write both locks are applied -> write_lock.thread_id
     //4. none -> none
-    pub fn schedule_on_threads(&mut self, account: Pubkey) -> usize {
+    pub fn schedule_on_threads(&mut self, account: Pubkey, for_write:bool) -> Option<usize> {
         match self.locks.get(&account) {
             //None -> any/doesnt-care
-            None => 100,
+            None => Some(100),
             Some(AccountLocks {
                 write_lock : Some(write_lock),
                 read_lock : None
-            }) => write_lock.thread_id,
+            }) => Some(write_lock.thread_id),
             // for a account, if both read and write
             // locks are there then schedulabe thread should only be one
             // can be related to other errors as well in read&write lock fun as well
@@ -128,12 +128,20 @@ impl ThreadAwareLocks {
                     write_lock.thread_id,
                     self.convert_thread_set_into_single_thread_id(read_lock)
                 );
-                write_lock.thread_id
+                Some(write_lock.thread_id)
             },
             Some(AccountLocks{
                 write_lock : None,
                 read_lock : Some(read_lock)
-            }) => self.handle_only_read_condition(read_lock),
+            }) => {
+                let schedulable_thread = self.handle_only_read_condition(read_lock);
+                let any_thread = 1;
+                if !for_write {
+                return Some(any_thread);
+                } else {
+                    schedulable_thread
+                }
+            }
             Some(AccountLocks{
                 write_lock : None,
                 read_lock : None
@@ -146,7 +154,7 @@ impl ThreadAwareLocks {
     }
     
 
-     pub fn handle_only_read_condition(&self, read:&AccountReadLocks) -> usize{
+     pub fn handle_only_read_condition(&self, read:&AccountReadLocks) -> Option<usize>{
         // one condition is left that is when write could also happen
         // then if read happening on only thread then its fine
         // but if happening on differnet threads the return None
@@ -156,15 +164,11 @@ impl ThreadAwareLocks {
        .collect();
     let count = true_indicies.len();
        if count == 1 {
-       true_indicies[0]
+       Some(true_indicies[0])
     } else {
-        // can choose any here
-        // TODO:
-        // can perform some load-balancing here
-        // for now just returning the first element
-        // quesiton -> shouldnt i should return None here ?? but first need to
-        // add write condition
-        true_indicies[0]
+        // TODO: handle re-schedule condition
+        //None
+        panic!("Cannot schedule because of multi-threading conflict")
     }
     }
 
