@@ -43,9 +43,11 @@ impl ThreadAwareLocks {
         &mut self,
         write_account :Vec<Pubkey>,
         read_account : Vec<Pubkey>
-    ) {
-        let scheduable_threads = self.accounts_schedulable_threads(write_account.clone(), read_account.clone());
+    ) -> usize{
+        let mut scheduable_threads = self.accounts_schedulable_threads(write_account.clone(), read_account.clone());
+        scheduable_threads = self.simplefy_threads(scheduable_threads);
         self.lock_account(write_account, read_account, scheduable_threads[0]);
+        scheduable_threads[0]
     }
 
     pub fn accounts_schedulable_threads(
@@ -89,6 +91,7 @@ impl ThreadAwareLocks {
         read_account : Vec<Pubkey>,
         thread_id : ThreadId
     ) {
+
         assert!(
             thread_id < self.number_of_thread,
             "thread_id must be < num_threads"

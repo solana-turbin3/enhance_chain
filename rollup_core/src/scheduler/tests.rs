@@ -195,3 +195,33 @@ fn test_accounts_schedulable_threads_3() {
     locks.read_account_lock(pk1, 2);
     let _scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![pk1,pk2] , vec![]);
 }
+
+#[test]
+#[should_panic(expected="Cannot schedule because of multi-threading conflict")]
+fn test_try_lock_account_with_conflict() {
+    let pk1 = Pubkey::new_unique();
+    let pk2 = Pubkey::new_unique(); 
+    const TEST_NUM_THREADS: usize = 4;
+    let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
+
+    locks.read_account_lock(pk1, 2);
+    locks.read_account_lock(pk1, 3);
+
+    locks.try_lock_account(vec![pk1], vec![pk2]);
+} 
+
+#[test]
+fn test_try_lock_account_with_conflict_2() {
+    let pk1 = Pubkey::new_unique();
+    let pk2 = Pubkey::new_unique(); 
+    const TEST_NUM_THREADS: usize = 4;
+    let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
+
+    locks.write_lock_account(pk1, 2);
+
+    assert_eq!(
+        locks.try_lock_account(vec![pk1], vec![pk2]),
+        2
+    )
+
+} 

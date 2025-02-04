@@ -57,24 +57,26 @@ impl LineUpQueue {
             self.add_transaction_to_non_rescheduable_container(
                 rescheduable_txs.id,
                 rescheduable_txs.priority,
-                rescheduable_txs.txs
+                rescheduable_txs.txs,
             );
         }
-        for transaction in &self.main_queue {
+        
+        let mut i = 0;
+        while i < self.main_queue.len() {
             if self.lineup_budget_counter < TOTAL_LINUP_BUDGET {
-                self.lineup_queue.push(
-                    TransactionsInQueue{
-                        id : transaction.id,
-                        txs : transaction.txs.clone(),
-                        priority : transaction.priority
-                    }
-                );
+                let transaction = self.main_queue.remove(i); // Removes transaction from main_queue
+                self.lineup_queue.push(TransactionsInQueue {
+                    id: transaction.id,
+                    txs: transaction.txs,
+                    priority: transaction.priority,
+                });
                 self.lineup_budget_counter += PER_LINEUP_BUDGET;
             } else {
                 break;
             }
         }
     }
+    
     
     // Result -> Ok()
     //self

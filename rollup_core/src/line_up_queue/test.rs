@@ -61,7 +61,7 @@ fn full_flow() {
     line_up_queue.add_to_line_up();
     assert_eq!(
         line_up_queue.main_queue.len(),
-        15
+        5
     );
     assert_eq!(
         line_up_queue.lineup_queue.len(),
@@ -82,8 +82,9 @@ fn full_flow() {
 
     assert_eq!(
         line_up_queue.main_queue.len(),
-        20
+        10
     );
     println!("{:?}",line_up_queue.main_queue.len());
+    println!("{:?}",line_up_queue.lineup_queue.len());
 
 }
