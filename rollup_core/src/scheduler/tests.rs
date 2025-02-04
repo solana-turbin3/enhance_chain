@@ -134,3 +134,27 @@ fn test_schedule_on_thread_with_read_and_write() {
 }
 
 //test_accounts_schedulable_threads_outstanding_read_only
+
+#[test]
+fn test_accounts_schedulable_threads() {
+    let pk1 = Pubkey::new_unique();
+    let pk2 = Pubkey::new_unique(); 
+
+    const TEST_NUM_THREADS: usize = 4;
+    let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
+
+    locks.read_account_lock(pk1, 2);
+    let scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![pk1,pk2] , vec![]);
+
+    let final_scheduable_thread_for_new_tsx = locks.from_account_schedulablet_thread_from_thread_id_for_account_that_not_create_any_problem(scheduable_thread_for_new_tsx);
+
+    assert_eq!(
+        final_scheduable_thread_for_new_tsx.len(),
+        1
+    );
+    assert_eq!(
+        final_scheduable_thread_for_new_tsx[0],
+        2
+    );
+    println!("{:?}",final_scheduable_thread_for_new_tsx)
+}

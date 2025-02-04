@@ -44,36 +44,64 @@ impl ThreadAwareLocks {
         write_account : Pubkey,
         read_account : Pubkey,
     ) {
-        let scheduable_threads = self.accounts_schedulable_threads(write_account, read_account);
+        // let scheduable_threads = self.accounts_schedulable_threads(write_account, read_account);
         // self.lock_account(write_account, read_account, scheduable_threads);
     }
 
     pub fn accounts_schedulable_threads(
         &mut self,
-        write_account : Pubkey,
-        read_account : Pubkey,
-    ) {
+        write_account : Vec<Pubkey>,
+        read_account : Vec<Pubkey>,
+    ) -> Vec<usize> {
         let mut accounts_schedulable_threads: Vec<usize> = Vec::new();
 
-        let act_from_write_accounts = self.schedule_on_threads(write_account);
-        let act_from_read_account = self.schedule_on_threads(read_account);
+        for account in write_account {
+            let schedulable_threads = self.schedule_on_threads(account);
+            accounts_schedulable_threads.push(schedulable_threads);
+        }
+        for account in read_account {
+            let schedulable_threads = self.schedule_on_threads(account);
+            accounts_schedulable_threads.push(schedulable_threads);
+        }
+        accounts_schedulable_threads
+    }
 
-        accounts_schedulable_threads.push(act_from_write_accounts);
-        accounts_schedulable_threads.push(act_from_read_account);
+    // all the account that doesnt care where the txs goes
+    // or account the doesnt have any read or write lock mean can go to any thread
+    // for those account im putting thread_id -> 100 (just as a identifier)
+    // and here im removing those account thread_id because
+    // these account doesnt impact where the parent transaction
+    // will be scheduled and to simpleify stuff 
+    pub fn from_account_schedulablet_thread_from_thread_id_for_account_that_not_create_any_problem(&mut self,mut account_schedable_thread: Vec<usize>) -> 
+    Vec<usize> {
+        let any_thread : usize = 1;
+        account_schedable_thread.retain(|&thread_id| thread_id != 100);
+        // if account_schedable_thread.len() is 0, then the tsx can be scheduled in any of the thread
+        if account_schedable_thread.len()==0 {
+            return vec![any_thread];
+        }
+        account_schedable_thread.clone()
     }
 
     pub fn lock_account(
         &mut self,
-        write_account : Pubkey,
-        read_account : Pubkey,
+        write_account : Vec<Pubkey>,
+        read_account : Vec<Pubkey>,
         thread_id : ThreadId
     ) {
         assert!(
             thread_id < self.number_of_thread,
             "thread_id must be < num_threads"
         );
-        self.write_lock_account(write_account, thread_id);
-        self.read_account_lock(read_account, thread_id);
+
+        for account in write_account {
+            self.write_lock_account(account, thread_id);
+        }
+
+
+        for account in read_account {
+            self.read_account_lock(account, thread_id);
+        }
     }
 
     //1. only read lock applied on the account
@@ -82,7 +110,8 @@ impl ThreadAwareLocks {
     //4. none -> none
     pub fn schedule_on_threads(&mut self, account: Pubkey) -> usize {
         match self.locks.get(&account) {
-            None => 0,
+            //None -> any/doesnt-care
+            None => 100,
             Some(AccountLocks {
                 write_lock : Some(write_lock),
                 read_lock : None
@@ -112,20 +141,9 @@ impl ThreadAwareLocks {
         }
     }
 
-    // pub fn convert_thread_set_into_single_thread_id(&self, read_lock: &AccountReadLocks) -> usize {
-    //     let mut count = 0;
-    //     for &status in &read_lock.thread_set {
-    //         if status {
-    //             count += 1;
-    //         }
-    //     }
-    //     count
-    // }
-
     pub fn convert_thread_set_into_single_thread_id(&self, read_lock: &AccountReadLocks) -> usize {
         read_lock.thread_set.iter().filter(|&&status| status).count()
     }
-    
     
 
      pub fn handle_only_read_condition(&self, read:&AccountReadLocks) -> usize{
