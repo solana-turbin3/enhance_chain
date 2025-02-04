@@ -41,11 +41,11 @@ impl ThreadAwareLocks {
 
     pub fn try_lock_account(
         &mut self,
-        write_account : Pubkey,
-        read_account : Pubkey,
+        write_account :Vec<Pubkey>,
+        read_account : Vec<Pubkey>
     ) {
-        // let scheduable_threads = self.accounts_schedulable_threads(write_account, read_account);
-        // self.lock_account(write_account, read_account, scheduable_threads);
+        let scheduable_threads = self.accounts_schedulable_threads(write_account.clone(), read_account.clone());
+        self.lock_account(write_account, read_account, scheduable_threads[0]);
     }
 
     pub fn accounts_schedulable_threads(
