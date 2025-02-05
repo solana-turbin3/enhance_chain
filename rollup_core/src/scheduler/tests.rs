@@ -211,7 +211,7 @@ fn test_try_lock_account_with_conflict() {
 } 
 
 #[test]
-fn test_try_lock_account_with_conflict_2() {
+fn test_try_lock_account_with_no_conflict() {
     let pk1 = Pubkey::new_unique();
     let pk2 = Pubkey::new_unique(); 
     const TEST_NUM_THREADS: usize = 4;
