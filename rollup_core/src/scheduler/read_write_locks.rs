@@ -43,11 +43,11 @@ impl ThreadAwareLocks {
         &mut self,
         write_account :Vec<Pubkey>,
         read_account : Vec<Pubkey>
-    ) -> usize{
+    ) -> Option<usize>{
         let mut scheduable_threads = self.accounts_schedulable_threads(write_account.clone(), read_account.clone());
         scheduable_threads = self.simplefy_threads(scheduable_threads);
         self.lock_account(write_account, read_account, scheduable_threads[0]);
-        scheduable_threads[0]
+        Some(scheduable_threads[0])
     }
 
     pub fn accounts_schedulable_threads(

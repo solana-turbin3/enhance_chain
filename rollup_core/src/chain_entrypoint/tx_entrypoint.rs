@@ -48,9 +48,24 @@ impl MakeTransaction {
         lineup_queue.clear_lineup_queue_for_next_batch();
     }
 
+    //IMP -> all the clone stuff
     // full-up the transaction from lineup_queue and apply RW locks and schedule on threads
-    pub fn take_out_individual_transaction_and_apply_RWlocks(lineup_queue : LineUpQueue, thread_aware_locks : ThreadAwareLocks) {
-        
+    pub fn take_out_individual_transaction_and_apply_RWlocks(lineup_queue : &mut LineUpQueue, thread_aware_locks : &mut ThreadAwareLocks) {
+        let transactions: Vec<_> = lineup_queue.lineup_queue.iter().cloned().collect();
+        for transaction in transactions {
+
+            let is_writeable_accounts_clone = transaction.txs_accounts.is_writeable_accounts.clone();
+            let non_writeable_accounts_clone = transaction.txs_accounts.non_writeable_accounts.clone();
+
+            if let Some(scheduled_thread) = thread_aware_locks.try_lock_account(is_writeable_accounts_clone.clone(), non_writeable_accounts_clone.clone()) {
+                //TODO:
+                //do something with scheduled_thread
+            }
+            else {
+                lineup_queue.add_transaction_to_non_rescheduable_container(transaction.id, transaction.tx_type, transaction.txs_accounts, transaction.priority);
+            }
+            
+        }
     }
 
 

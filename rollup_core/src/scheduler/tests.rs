@@ -221,7 +221,7 @@ fn test_try_lock_account_with_no_conflict() {
 
     assert_eq!(
         locks.try_lock_account(vec![pk1], vec![pk2]),
-        2
+        Some(2)
     )
 
 } 

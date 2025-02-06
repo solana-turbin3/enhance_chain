@@ -63,9 +63,9 @@ impl LineUpQueue {
         for rescheduable_txs in reschedable_txs_clone {
             self.add_transaction_to_non_rescheduable_container(
                 rescheduable_txs.id,
-                rescheduable_txs.priority,
+                rescheduable_txs.tx_type,
                 rescheduable_txs.txs_accounts,
-                rescheduable_txs.tx_type
+                rescheduable_txs.priority,
             );
         }
         
@@ -111,17 +111,17 @@ impl LineUpQueue {
     pub fn add_transaction_to_non_rescheduable_container(
         &mut self,
         id : u64,
-        priority : u64,
+        tx_type : String, 
         txs_accounts : AccountInvolvedInTransaction,
-        tx_type : String 
+        priority : u64,
     ) {
         if self.rescheduable_budget < TOTAL_RESCHEDUABLE_BUDGET {
             self.reschedable_txs.push(
                 TransactionsInQueue {
                     id,
+                    tx_type,
                     txs_accounts,
                     priority,
-                    tx_type
                 }
             );
             self.rescheduable_budget += PER_RESCHEDUABLE_BUDGET
