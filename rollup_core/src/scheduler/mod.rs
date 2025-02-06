@@ -1,2 +1,2 @@
-mod read_write_locks;
+pub mod read_write_locks;
 mod tests;

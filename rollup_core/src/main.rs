@@ -11,13 +11,14 @@ mod frontend;
 mod rollupdb;
 mod sequencer;
 mod settle;
-mod pool;
-mod scheduler;
-mod line_up_queue;
-mod per_db;
-mod users_handler;
-mod error;
-mod processor;
+pub mod pool;
+pub mod scheduler;
+pub mod line_up_queue;
+pub mod per_db;
+pub mod users_handler;
+pub mod error;
+pub mod processor;
+pub mod chain_entrypoint;
 // #[actix_web::main]
 fn main() {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("debug"));
