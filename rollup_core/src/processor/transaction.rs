@@ -10,6 +10,8 @@ use {
     spl_associated_token_account::get_associated_token_address,
     std::collections::HashSet,
 };
+
+#[derive(Clone)]
 pub struct ForTransferTransaction {
     pub mint: Option<Pubkey>,
     pub from: Pubkey,

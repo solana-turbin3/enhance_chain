@@ -16,7 +16,7 @@ use {
     std::sync::{Arc, RwLock},
 };
 
-pub(crate) struct PayTubeForkGraph {}
+pub struct PayTubeForkGraph {}
 
 impl ForkGraph for PayTubeForkGraph {
     fn relationship(&self, _a: Slot, _b: Slot) -> BlockRelation {
@@ -24,7 +24,7 @@ impl ForkGraph for PayTubeForkGraph {
     }
 }
 
-pub(crate) fn create_transaction_batch_processor<CB: TransactionProcessingCallback>(
+pub fn create_transaction_batch_processor<CB: TransactionProcessingCallback>(
     callbacks: &CB,
     feature_set: &FeatureSet,
     compute_budget: &ComputeBudget,
@@ -93,7 +93,7 @@ pub(crate) fn create_transaction_batch_processor<CB: TransactionProcessingCallba
 /// This functions is also a mock. In the Agave validator, the bank pre-checks
 /// transactions before providing them to the SVM API. We mock this step in
 /// PayTube, since we don't need to perform such pre-checks.
-pub(crate) fn get_transaction_check_results(
+pub fn get_transaction_check_results(
     len: usize,
     lamports_per_signature: u64,
 ) -> Vec<transaction::Result<CheckedTransactionDetails>> {

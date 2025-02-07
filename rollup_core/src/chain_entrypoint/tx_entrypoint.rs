@@ -1,14 +1,23 @@
 use std::{collections::HashMap, default};
 
-use solana_sdk::{blake3::Hash, pubkey::Pubkey};
-use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, scheduler::read_write_locks::ThreadAwareLocks};
+use solana_sdk::{blake3::Hash, pubkey::Pubkey, signature::Keypair, signer::Signer};
+use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::ForTransferTransaction}, scheduler::read_write_locks::ThreadAwareLocks};
+
+// #[derive(Clone)]
+// pub struct TransferTransactionMetadata {
+//     pub mint: Option<Pubkey>,
+//     pub from: Pubkey,
+//     pub to: Pubkey,
+//     pub amount: u64,
+// }
 
 
 pub struct  MakeTransaction {
-    id : u64,
-    tx_type : String,
-    accounts : AccountInvolvedInTransaction,
-    priority_level : u64
+    pub id : u64,
+    pub tx_type : String,
+    pub accounts : AccountInvolvedInTransaction,
+    pub priority_level : u64,
+    pub transaction_metadata : ForTransferTransaction
 }
 
 pub struct ChainTransaction {
@@ -51,7 +60,7 @@ impl Default for ChainTransaction  {
 
 impl ChainTransaction {
 
-    pub fn create_new_transaction(&mut self,id:u64,tx_type : String, account : AccountInvolvedInTransaction , priority : u64) -> MakeTransaction  {
+    pub fn create_new_transaction(&mut self,id:u64,tx_type : String, account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : ForTransferTransaction) -> MakeTransaction  {
         self.chain_transaction.insert(id, MakeTransaction {
             id : id,
             tx_type : tx_type.clone(),
@@ -59,7 +68,8 @@ impl ChainTransaction {
                 is_writeable_accounts : account.is_writeable_accounts.clone(),
                 non_writeable_accounts : account.non_writeable_accounts.clone()
             },
-            priority_level : priority
+            priority_level : priority,
+            transaction_metadata : transaction_metadata.clone()
         });   
         MakeTransaction {
             id : id,
@@ -68,16 +78,22 @@ impl ChainTransaction {
                 is_writeable_accounts : account.is_writeable_accounts,
                 non_writeable_accounts : account.non_writeable_accounts
             },
-            priority_level : priority 
+            priority_level : priority,
+            transaction_metadata
         }     
     }
 
-    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue) {
+    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, mint : Pubkey , from : Pubkey , to : Pubkey , amount : u64) {
         //create a new transaction and get everything to put in the add_queue func.
         let new_transaction = self.create_new_transaction(1, "transfer".to_string(), AccountInvolvedInTransaction{
             is_writeable_accounts : vec![],
             non_writeable_accounts : vec![]
-        },1);
+        },1 , ForTransferTransaction {
+            mint : Some(mint),
+            from,
+            to,
+            amount
+        });
 
         lineup_queue.add_to_main_tx_queue( 
             new_transaction.id,
@@ -127,7 +143,7 @@ impl ChainTransaction {
     }
 
     pub fn get_all_transaction_on_a_thread(&mut  self,  tsx_on_thread : TransactionsOnThread, thread_id : usize) -> Vec<&MakeTransaction> {
-        let ids = TransactionsOnThread::get_all_tx_ids_for_thread(&tsx_on_thread, thread_id);
+        let ids: Vec<u64> = TransactionsOnThread::get_all_tx_ids_for_thread(&tsx_on_thread, thread_id);
         let mut all_transaction_on_thread_id = Vec::new();
         for id in ids { 
             let single_txs = self.get_single_transaction_on_a_particular_thread(id);
@@ -136,13 +152,52 @@ impl ChainTransaction {
         all_transaction_on_thread_id
     }
 
-    pub fn get_all_transaction_from_all_4_thread(&mut self, tsx_on_thread : TransactionsOnThread) {
-        let transaction_on_thread_1  = self.get_all_transaction_on_a_thread(tsx_on_thread, 1);
-        // let transaction_on_thread_2  = self.get_all_transaction_on_a_thread(tsx_on_thread, 2);
-        // let transaction_on_thread_3  = self.get_all_transaction_on_a_thread(tsx_on_thread, 3);
-        // let transaction_on_thread_4  = self.get_all_transaction_on_a_thread(tsx_on_thread, 4);
+    
+    pub fn process_all_transaction_from_thread_1(&mut self, tsx_on_thread : TransactionsOnThread) {
+        let transaction_on_thread_1 = self.get_all_transaction_on_a_thread(tsx_on_thread, 1);
+        let transaction_metadata = get_all_transaction_metadata_from_transaction(transaction_on_thread_1);
+        let final_transaction_metadata  = transaction_metadata.as_slice();
+
+
+        let alice = Keypair::new();
+        let bob = Keypair::new();
+        let will = Keypair::new();
+    
+        let alice_pubkey = alice.pubkey();
+        let bob_pubkey = bob.pubkey();
+        let will_pubkey = will.pubkey();
+    
+        let accounts = vec![
+            (alice_pubkey, system_account(10_000_000)),
+            (bob_pubkey, system_account(10_000_000)),
+            (will_pubkey, system_account(10_000_000)),
+        ];
+    
+        let context = TestValidatorContext::start_with_accounts(accounts);
+        let test_validator = &context.test_validator;
+        let payer = context.payer.insecure_clone();
+    
+        let rpc_client = test_validator.get_rpc_client();
+        
+        let paytube_channel = PayTubeChannel::new(vec![payer, alice, bob, will], rpc_client);
+
+        paytube_channel.process_paytube_transfers(final_transaction_metadata);
+        
     }
-
-
-
+    
+    
+    
+}
+pub fn get_all_transaction_metadata_from_transaction(transaction : Vec<&MakeTransaction>) -> Vec<ForTransferTransaction> {
+    let mut metadata_vec : Vec<ForTransferTransaction> = Vec::new();
+    for transaction in transaction {
+        let transaction_metadata = ForTransferTransaction {
+           mint : transaction.transaction_metadata.mint,
+          to : transaction.transaction_metadata.to,
+          from : transaction.transaction_metadata.from,
+          amount : transaction.transaction_metadata.amount 
+        };
+        metadata_vec.push(transaction_metadata);
+    }
+    metadata_vec
 }
