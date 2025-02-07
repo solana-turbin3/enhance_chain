@@ -11,7 +11,7 @@ use {
     std::collections::HashSet,
 };
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct ForTransferTransaction {
     pub mint: Option<Pubkey>,
     pub from: Pubkey,

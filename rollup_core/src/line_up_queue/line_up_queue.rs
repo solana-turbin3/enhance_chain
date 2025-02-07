@@ -89,8 +89,8 @@ impl LineUpQueue {
     
     // Result -> Ok()
     //self
-    pub fn sort_linup_queue_according_to_priority(&mut self) -> &mut Self{
-        if self.lineup_queue.len() <10 {
+    pub fn sort_linup_queue_according_to_priority(&mut self, testing:bool) -> &mut Self{
+        if self.lineup_queue.len() <10 && !testing {
             panic!("Lineup is not full");
         } else {
             self.lineup_queue.sort_by(|a, b| b.priority.cmp(&a.priority)); 

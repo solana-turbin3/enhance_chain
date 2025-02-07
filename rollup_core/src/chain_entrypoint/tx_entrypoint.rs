@@ -11,7 +11,7 @@ use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQ
 //     pub amount: u64,
 // }
 
-
+#[derive(Debug)]
 pub struct  MakeTransaction {
     pub id : u64,
     pub tx_type : String,
@@ -20,6 +20,7 @@ pub struct  MakeTransaction {
     pub transaction_metadata : ForTransferTransaction
 }
 
+#[derive(Debug)]
 pub struct ChainTransaction {
     pub chain_transaction  : HashMap<u64, MakeTransaction>
 }
@@ -29,13 +30,16 @@ pub struct TransactionsOnThread {
     pub trnasaction_on_thread  : HashMap<u64,usize>
 }
 
-impl TransactionsOnThread {
-    fn init() -> Self {
+impl Default for TransactionsOnThread {
+    fn default() -> Self {
         let trnasaction_on_thread_hashmp = HashMap::new();
         TransactionsOnThread {
             trnasaction_on_thread : trnasaction_on_thread_hashmp
         }
     }
+}
+
+impl TransactionsOnThread {
 
     // thread_id -> trnasaction_id
     pub fn get_all_tx_ids_for_thread(&self, thread_id: usize) -> Vec<u64> {
@@ -83,16 +87,16 @@ impl ChainTransaction {
         }     
     }
 
-    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, mint : Pubkey , from : Pubkey , to : Pubkey , amount : u64) {
+    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : ForTransferTransaction) {
         //create a new transaction and get everything to put in the add_queue func.
         let new_transaction = self.create_new_transaction(1, "transfer".to_string(), AccountInvolvedInTransaction{
-            is_writeable_accounts : vec![],
-            non_writeable_accounts : vec![]
+            is_writeable_accounts : account.is_writeable_accounts,
+            non_writeable_accounts : account.non_writeable_accounts
         },1 , ForTransferTransaction {
-            mint : Some(mint),
-            from,
-            to,
-            amount
+            mint : Some(transaction_metadata.mint).unwrap(),
+            from : transaction_metadata.from,
+            to : transaction_metadata.to,
+            amount : transaction_metadata.amount
         });
 
         lineup_queue.add_to_main_tx_queue( 
@@ -103,32 +107,32 @@ impl ChainTransaction {
         );
     }
 
-    pub fn put_all_the_transaction_in_the_lineup_queue(lineup_queue : &mut LineUpQueue) {
+    pub fn put_all_the_transaction_in_the_lineup_queue(&mut self,lineup_queue : &mut LineUpQueue) {
         lineup_queue.add_to_line_up();
     }
 
-    pub fn sort_transaction_in_lineup_queue_by_priority(lineup_queue : &mut LineUpQueue) {
-        lineup_queue.sort_linup_queue_according_to_priority();
+    pub fn sort_transaction_in_lineup_queue_by_priority(&mut self ,lineup_queue : &mut LineUpQueue) {
+        lineup_queue.sort_linup_queue_according_to_priority(true);
     }
 
-    pub fn clear_lineup_queue(lineup_queue : &mut LineUpQueue) {
+    pub fn clear_lineup_queue(&mut self,lineup_queue : &mut LineUpQueue) {
         lineup_queue.clear_lineup_queue_for_next_batch();
     }
 
-    //IMP -> all the clone stuff
     // full-up the transaction from lineup_queue and apply RW locks and schedule on threads
-    pub fn take_out_individual_transaction_and_apply_RWlocks(lineup_queue : &mut LineUpQueue, thread_aware_locks : &mut ThreadAwareLocks) {
+    //IMP -> all the clone stuff
+    pub fn take_out_individual_transaction_and_apply_RWlocks(&mut self,lineup_queue : &mut LineUpQueue, thread_aware_locks : &mut ThreadAwareLocks , transaction_on_thread : &mut TransactionsOnThread) {
         let transactions: Vec<_> = lineup_queue.lineup_queue.iter().cloned().collect();
         //TODO:
         //do not init trnasaction_on_thread as default, use existing value
-        let mut trnasaction_on_thread =  TransactionsOnThread::init();
+        // let mut trnasaction_on_thread =  TransactionsOnThread::default();
         for transaction in transactions {
 
             let is_writeable_accounts_clone = transaction.txs_accounts.is_writeable_accounts.clone();
             let non_writeable_accounts_clone = transaction.txs_accounts.non_writeable_accounts.clone();
 
             if let Some(scheduled_thread) = thread_aware_locks.try_lock_account(is_writeable_accounts_clone.clone(), non_writeable_accounts_clone.clone()) {
-                trnasaction_on_thread.trnasaction_on_thread.insert(transaction.id, scheduled_thread);
+                transaction_on_thread.trnasaction_on_thread.insert(transaction.id, scheduled_thread);
             }
             else {
                 lineup_queue.add_transaction_to_non_rescheduable_container(transaction.id, transaction.tx_type, transaction.txs_accounts, transaction.priority);

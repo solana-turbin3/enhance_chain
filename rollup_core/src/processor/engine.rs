@@ -32,6 +32,7 @@ pub struct PayTubeChannel {
     rpc_client: RpcClient,
 }
 
+
 impl PayTubeChannel {
     pub fn new(keys: Vec<Keypair>, rpc_client: RpcClient) -> Self {
         Self { keys, rpc_client }
@@ -58,8 +59,9 @@ impl PayTubeChannel {
         let account_loader = PayTubeAccountLoader::new(&self.rpc_client);
 
         // Solana SVM transaction batch processor.
+        let fork_graph = Arc::new(RwLock::new(PayTubeForkGraph {}));
         let processor =
-            create_transaction_batch_processor(&account_loader, &feature_set, &compute_budget);
+            create_transaction_batch_processor(&account_loader, &feature_set, &compute_budget,Arc::clone(&fork_graph));
 
         // The PayTube transaction processing runtime environment.
         let processing_environment = TransactionProcessingEnvironment {
