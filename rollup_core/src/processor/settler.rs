@@ -136,6 +136,8 @@ impl<'a> PayTubeSettler<'a> {
                     },
                 )
                 .unwrap();
+
+            // println!("{:?}", transaction.signatures)
         });
     }
 }

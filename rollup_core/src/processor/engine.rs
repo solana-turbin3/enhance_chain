@@ -3,9 +3,7 @@ use crate::processor::settler::PayTubeSettler;
 use crate::processor::transaction::ForTransferTransaction;
 use super::loader::PayTubeAccountLoader;
 
-use {
-    
-    //   crate::processor::settler::PayTubeSettler, transaction::PayTubeTransaction,
+use {  
     crate::processor::processor::{
         create_transaction_batch_processor, get_transaction_check_results, PayTubeForkGraph,
     },
@@ -49,6 +47,8 @@ impl PayTubeChannel {
     /// The general scaffold of the PayTube API would remain the same.
     pub fn process_paytube_transfers(&self, transactions: &[ForTransferTransaction]) {
         // PayTube default configs.
+        crate::processor::log::setup_solana_logging();
+        crate::processor::log::creating_paytube_channel();
         let compute_budget = ComputeBudget::default();
         let feature_set = FeatureSet::all_enabled();
         let fee_structure = FeeStructure::default();
@@ -84,6 +84,7 @@ impl PayTubeChannel {
         let svm_transactions = create_svm_transactions(transactions);
 
         // 2. Process transactions with the SVM API.
+        crate::processor::log::processing_transactions(svm_transactions.len());
         let results = processor.load_and_execute_sanitized_transactions(
             &account_loader,
             &svm_transactions,
@@ -94,8 +95,9 @@ impl PayTubeChannel {
 
         // 3. Convert results into a final ledger using a `PayTubeSettler`.
         let settler = PayTubeSettler::new(&self.rpc_client, transactions, results, &self.keys);
-
+        crate::processor::log::settling_to_base_chain(settler.num_transactions());
         // 4. Submit to the Solana base chain.
         settler.process_settle();
+        crate::processor::log::channel_closed();
     }
 }

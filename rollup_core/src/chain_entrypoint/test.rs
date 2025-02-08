@@ -1,4 +1,4 @@
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 
 use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::ForTransferTransaction, scheduler::read_write_locks::ThreadAwareLocks};
 
@@ -10,14 +10,15 @@ fn test_full_flow() {
 
     let mut chain_trnasaction = ChainTransaction::default();
 
-    let w_account = Pubkey::new_unique();
-    let r_account = Pubkey::new_unique();
-
+    let w_account = Keypair::new().pubkey();
+    let r_account = Keypair::new().pubkey();
+    let from = Keypair::new();
+    let to = Keypair::new();
     let transaction_metadata = ForTransferTransaction {
-        amount : 1,
-        mint : Some(Pubkey::new_unique()),
-        from : Pubkey::new_unique(),
-        to : Pubkey::new_unique()
+        amount : 10_000_000,
+        mint : None,
+        from : from.pubkey(),
+        to : to.pubkey()
     };
 
     let transaction_accounts = AccountInvolvedInTransaction {
@@ -29,7 +30,7 @@ fn test_full_flow() {
     let mut thread_aware_locks = ThreadAwareLocks::new(4);
     let mut transaction_on_thread = TransactionsOnThread::default();
 
-    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts, transaction_metadata);
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts, transaction_metadata , from,to);
 
    chain_trnasaction.put_all_the_transaction_in_the_lineup_queue(&mut lineup_queue);
 

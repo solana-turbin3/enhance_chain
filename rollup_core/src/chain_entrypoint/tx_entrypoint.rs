@@ -17,7 +17,9 @@ pub struct  MakeTransaction {
     pub tx_type : String,
     pub accounts : AccountInvolvedInTransaction,
     pub priority_level : u64,
-    pub transaction_metadata : ForTransferTransaction
+    pub transaction_metadata : ForTransferTransaction,
+    pub from_key : Keypair,
+    pub to_key : Keypair
 }
 
 #[derive(Debug)]
@@ -64,7 +66,7 @@ impl Default for ChainTransaction  {
 
 impl ChainTransaction {
 
-    pub fn create_new_transaction(&mut self,id:u64,tx_type : String, account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : ForTransferTransaction) -> MakeTransaction  {
+    pub fn create_new_transaction(&mut self,id:u64,tx_type : String, account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : ForTransferTransaction , from_key:Keypair , to_key : Keypair) -> MakeTransaction  {
         self.chain_transaction.insert(id, MakeTransaction {
             id : id,
             tx_type : tx_type.clone(),
@@ -73,7 +75,10 @@ impl ChainTransaction {
                 non_writeable_accounts : account.non_writeable_accounts.clone()
             },
             priority_level : priority,
-            transaction_metadata : transaction_metadata.clone()
+            transaction_metadata : transaction_metadata.clone(),
+            from_key : from_key.insecure_clone(),
+            to_key : to_key.insecure_clone()
+
         });   
         MakeTransaction {
             id : id,
@@ -83,11 +88,13 @@ impl ChainTransaction {
                 non_writeable_accounts : account.non_writeable_accounts
             },
             priority_level : priority,
-            transaction_metadata
+            transaction_metadata,
+            from_key,
+            to_key
         }     
     }
 
-    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : ForTransferTransaction) {
+    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : ForTransferTransaction , from_key:Keypair, to_key : Keypair) {
         //create a new transaction and get everything to put in the add_queue func.
         let new_transaction = self.create_new_transaction(1, "transfer".to_string(), AccountInvolvedInTransaction{
             is_writeable_accounts : account.is_writeable_accounts,
@@ -97,7 +104,10 @@ impl ChainTransaction {
             from : transaction_metadata.from,
             to : transaction_metadata.to,
             amount : transaction_metadata.amount
-        });
+        },
+        from_key,
+        to_key
+    );
 
         lineup_queue.add_to_main_tx_queue( 
             new_transaction.id,
@@ -159,22 +169,20 @@ impl ChainTransaction {
     
     pub fn process_all_transaction_from_thread_1(&mut self, tsx_on_thread : TransactionsOnThread) {
         let transaction_on_thread_1 = self.get_all_transaction_on_a_thread(tsx_on_thread, 1);
-        let transaction_metadata = get_all_transaction_metadata_from_transaction(transaction_on_thread_1);
+        let transaction_metadata = get_all_transaction_metadata_from_transaction(transaction_on_thread_1.clone());
         let final_transaction_metadata  = transaction_metadata.as_slice();
 
+        let from_key = transaction_on_thread_1[0].from_key.insecure_clone();
+        let to_key = transaction_on_thread_1[0].to_key.insecure_clone();
+        // let alice = Keypair::new();
+        // let bob = Keypair::new();
 
-        let alice = Keypair::new();
-        let bob = Keypair::new();
-        let will = Keypair::new();
+        // let alice_pubkey = alice.pubkey();
+        // let bob_pubkey = bob.pubkey();
     
-        let alice_pubkey = alice.pubkey();
-        let bob_pubkey = bob.pubkey();
-        let will_pubkey = will.pubkey();
-    
-        let accounts = vec![
-            (alice_pubkey, system_account(10_000_000)),
-            (bob_pubkey, system_account(10_000_000)),
-            (will_pubkey, system_account(10_000_000)),
+        let accounts: Vec<(Pubkey, solana_sdk::account::AccountSharedData)> = vec![
+            (from_key.pubkey(), system_account(10_000_000)),
+            (to_key.pubkey(), system_account(10_000_000)),
         ];
     
         let context = TestValidatorContext::start_with_accounts(accounts);
@@ -183,9 +191,50 @@ impl ChainTransaction {
     
         let rpc_client = test_validator.get_rpc_client();
         
-        let paytube_channel = PayTubeChannel::new(vec![payer, alice, bob, will], rpc_client);
+        let paytube_channel = PayTubeChannel::new(vec![payer, from_key], rpc_client);
 
-        paytube_channel.process_paytube_transfers(final_transaction_metadata);
+        // println!("metadata {:?}", final_transaction_metadata);
+
+        paytube_channel.process_paytube_transfers(&[
+            ForTransferTransaction {
+                from : transaction_metadata[0].from,
+                to : transaction_metadata[0].to,
+                amount : 2_000_000,
+                mint : None
+            }
+        ]);
+        // paytube_channel.process_paytube_transfers(final_transaction_metadata);
+
+        // paytube_channel.process_paytube_transfers(&[
+        //     // Alice -> Bob 2_000_000
+        //     ForTransferTransaction {
+        //         from: alice_pubkey,
+        //         to: bob_pubkey,
+        //         amount: 2_000_000,
+        //         mint: None,
+        //     },
+        //     // Bob -> Will 5_000_000
+        //     ForTransferTransaction {
+        //         from: bob_pubkey,
+        //         to: will_pubkey,
+        //         amount: 5_000_000,
+        //         mint: None,
+        //     },
+        //     // Alice -> Bob 2_000_000
+        //     ForTransferTransaction {
+        //         from: alice_pubkey,
+        //         to: bob_pubkey,
+        //         amount: 2_000_000,
+        //         mint: None,
+        //     },
+        //     // Will -> Alice 1_000_000
+        //     ForTransferTransaction {
+        //         from: will_pubkey,
+        //         to: alice_pubkey,
+        //         amount: 1_000_000,
+        //         mint: None,
+        //     },
+        // ]);
         
     }
     
