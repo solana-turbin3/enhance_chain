@@ -1,2 +1,2 @@
-mod user_handler;
-mod test;
+pub mod user_handler;
+pub mod test;

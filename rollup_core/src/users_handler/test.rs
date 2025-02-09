@@ -1,49 +1,27 @@
 use solana_sdk::pubkey::Pubkey;
 
-use super::user_handler::FullUserBase;
+use crate::users_handler::user_handler::AppUserBase;
+
 
 #[test]
 
 fn test_register_app() {
-    let mut full_user_base = FullUserBase::default();
+    let mut app_user_base = AppUserBase::default();
     let program_id = Pubkey::new_unique();
-    full_user_base.register_app(program_id);
-    assert_eq!(full_user_base.user_base.len(),2);
-    println!("{:?}",full_user_base)
+    app_user_base.register_app(program_id);
+    assert_eq!(app_user_base.app_user_base.len(),2);
+    println!("{:?}",app_user_base)
 }
 
 #[test]
 fn test_add_new_user_to_app() {
-    let mut full_user_base = FullUserBase::default();
+    let mut app_user_base = AppUserBase::default();
     let program_id = Pubkey::new_unique();
-    full_user_base.register_app(program_id);
-    assert_eq!(full_user_base.user_base.len(),2);
+    app_user_base.register_app(program_id);
+    assert_eq!(app_user_base.app_user_base.len(),1);
 
-    let new_user1 = Pubkey::new_unique();
-    let new_user2 = Pubkey::new_unique();
-    full_user_base.add_new_user_to_app(program_id, new_user1);
-    full_user_base.add_new_user_to_app(program_id, new_user2);
-    assert_eq!(full_user_base.user_base.len(),2);
-    println!("{:?}",full_user_base);
-    
-}
-
-#[test]
-fn update_user() {
-    let mut full_user_base = FullUserBase::default();
-    let program_id = Pubkey::new_unique();
-    full_user_base.register_app(program_id);
-    assert_eq!(full_user_base.user_base.len(),2);
-
-    let new_user1 = Pubkey::new_unique();
-    let new_user2 = Pubkey::new_unique();
-    full_user_base.add_new_user_to_app(program_id, new_user1);
-    full_user_base.add_new_user_to_app(program_id, new_user2);
-    assert_eq!(full_user_base.user_base.len(),2);
-    println!("{:?}",full_user_base);
-
-    let user_for_update = Pubkey::new_unique();
-    full_user_base.update_user(program_id, new_user2, user_for_update);
-    println!("{:?} {:?}",new_user2,user_for_update);
-    println!("{:?}",full_user_base);
+    app_user_base.add_new_user_to_app(program_id);
+    app_user_base.add_new_user_to_app(program_id);
+    assert_eq!(app_user_base.get_current_len_of_userbase_of_app(program_id), 2);
+    println!("{:?}",app_user_base);
 }
