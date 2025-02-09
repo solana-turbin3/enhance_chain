@@ -1,6 +1,6 @@
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 
-use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::ForTransferTransaction, scheduler::read_write_locks::ThreadAwareLocks};
+use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::ForTransferTransaction, scheduler::read_write_locks::ThreadAwareLocks, users_handler::user_handler::AppUserBase};
 
 use super::tx_entrypoint::ChainTransaction;
 
@@ -9,15 +9,26 @@ use super::tx_entrypoint::ChainTransaction;
 fn test_full_flow() {
 
     let mut chain_trnasaction = ChainTransaction::default();
+    let mut app_user_base = AppUserBase::default();
+
+    let program_id = Keypair::new().pubkey();
+    app_user_base.register_app(program_id);
+    app_user_base.add_new_user_to_app(program_id);
+
+    assert_eq!(
+        app_user_base.app_user_base.get(&program_id).unwrap().users.len(),
+        1
+    );
+
+    let user_key = app_user_base.get_keypair_from_user_name(program_id, "user1".to_string());
 
     let w_account = Keypair::new().pubkey();
     let r_account = Keypair::new().pubkey();
-    let from = Keypair::new();
     let to = Keypair::new();
     let transaction_metadata = ForTransferTransaction {
         amount : 10_000_000,
         mint : None,
-        from : from.pubkey(),
+        from : user_key.pubkey(),
         to : to.pubkey()
     };
 
@@ -29,8 +40,8 @@ fn test_full_flow() {
     let mut lineup_queue = LineUpQueue::default();
     let mut thread_aware_locks = ThreadAwareLocks::new(4);
     let mut transaction_on_thread = TransactionsOnThread::default();
-
-    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts, transaction_metadata , from,to);
+    
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts, transaction_metadata , &mut app_user_base,program_id , "user1".to_string());
 
    chain_trnasaction.put_all_the_transaction_in_the_lineup_queue(&mut lineup_queue);
 
@@ -58,8 +69,8 @@ fn test_full_flow() {
     0
    );
 
-   println!("{:?}",chain_trnasaction.chain_transaction);
-   println!("{:?}",transaction_on_thread.trnasaction_on_thread);
+   println!("tx_on_test{:?}",chain_trnasaction.chain_transaction);
+   println!("len{:?}",transaction_on_thread.trnasaction_on_thread);
 
    chain_trnasaction.process_all_transaction_from_thread_1(transaction_on_thread);
 

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, default};
 
 use solana_sdk::{blake3::Hash, pubkey::Pubkey, signature::Keypair, signer::Signer};
-use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::ForTransferTransaction}, scheduler::read_write_locks::ThreadAwareLocks};
+use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::ForTransferTransaction}, scheduler::read_write_locks::ThreadAwareLocks, users_handler::user_handler::AppUserBase};
 
 // #[derive(Clone)]
 // pub struct TransferTransactionMetadata {
@@ -19,7 +19,6 @@ pub struct  MakeTransaction {
     pub priority_level : u64,
     pub transaction_metadata : ForTransferTransaction,
     pub from_key : Keypair,
-    pub to_key : Keypair
 }
 
 #[derive(Debug)]
@@ -66,7 +65,9 @@ impl Default for ChainTransaction  {
 
 impl ChainTransaction {
 
-    pub fn create_new_transaction(&mut self,id:u64,tx_type : String, account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : ForTransferTransaction , from_key:Keypair , to_key : Keypair) -> MakeTransaction  {
+    pub fn create_new_transaction(&mut self,id:u64,tx_type : String, account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : ForTransferTransaction , user: &mut AppUserBase , program_id : Pubkey , user_name : String) -> MakeTransaction  {
+        let from_key = user.get_keypair_from_user_name(program_id, user_name);
+        println!("{:?}",from_key.pubkey());
         self.chain_transaction.insert(id, MakeTransaction {
             id : id,
             tx_type : tx_type.clone(),
@@ -77,7 +78,6 @@ impl ChainTransaction {
             priority_level : priority,
             transaction_metadata : transaction_metadata.clone(),
             from_key : from_key.insecure_clone(),
-            to_key : to_key.insecure_clone()
 
         });   
         MakeTransaction {
@@ -89,12 +89,11 @@ impl ChainTransaction {
             },
             priority_level : priority,
             transaction_metadata,
-            from_key,
-            to_key
+            from_key: from_key.insecure_clone(),
         }     
     }
 
-    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : ForTransferTransaction , from_key:Keypair, to_key : Keypair) {
+    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : ForTransferTransaction, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String) {
         //create a new transaction and get everything to put in the add_queue func.
         let new_transaction = self.create_new_transaction(1, "transfer".to_string(), AccountInvolvedInTransaction{
             is_writeable_accounts : account.is_writeable_accounts,
@@ -105,8 +104,9 @@ impl ChainTransaction {
             to : transaction_metadata.to,
             amount : transaction_metadata.amount
         },
-        from_key,
-        to_key
+        app_user_base,
+        program_id,
+        user_name
     );
 
         lineup_queue.add_to_main_tx_queue( 
@@ -169,11 +169,13 @@ impl ChainTransaction {
     
     pub fn process_all_transaction_from_thread_1(&mut self, tsx_on_thread : TransactionsOnThread) {
         let transaction_on_thread_1 = self.get_all_transaction_on_a_thread(tsx_on_thread, 1);
+        println!("side_tx_res{:?}",transaction_on_thread_1);
         let transaction_metadata = get_all_transaction_metadata_from_transaction(transaction_on_thread_1.clone());
         let final_transaction_metadata  = transaction_metadata.as_slice();
 
         let from_key = transaction_on_thread_1[0].from_key.insecure_clone();
-        let to_key = transaction_on_thread_1[0].to_key.insecure_clone();
+        println!("fromkey{:?}",from_key.pubkey());
+        // let to_key = transaction_on_thread_1[0].to_key.insecure_clone();
         // let alice = Keypair::new();
         // let bob = Keypair::new();
 
@@ -182,7 +184,7 @@ impl ChainTransaction {
     
         let accounts: Vec<(Pubkey, solana_sdk::account::AccountSharedData)> = vec![
             (from_key.pubkey(), system_account(10_000_000)),
-            (to_key.pubkey(), system_account(10_000_000)),
+            // (to_key.pubkey(), system_account(10_000_000)),
         ];
     
         let context = TestValidatorContext::start_with_accounts(accounts);
@@ -191,7 +193,7 @@ impl ChainTransaction {
     
         let rpc_client = test_validator.get_rpc_client();
         
-        let paytube_channel = PayTubeChannel::new(vec![payer, from_key], rpc_client);
+        let paytube_channel = PayTubeChannel::new(vec![payer , from_key.insecure_clone()], rpc_client);
 
         // println!("metadata {:?}", final_transaction_metadata);
 

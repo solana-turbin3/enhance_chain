@@ -5,7 +5,7 @@ use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 
 #[derive(Debug)]
 pub struct Users {
-    users : HashMap<String,Pubkey>
+    pub users : HashMap<String,Keypair>
 }
 
 #[derive(Debug)]
@@ -46,7 +46,7 @@ impl AppUserBase {
             let mut base_user_name = "user".to_string().to_owned();
             let last_new_name = (users_vec.users.len() +1).to_string();
             base_user_name.push_str(&last_new_name);
-            users_vec.users.insert(base_user_name , new_keypair.pubkey());
+            users_vec.users.insert(base_user_name , new_keypair);
         }  else {
             panic!("cant find the app")
         }
@@ -57,6 +57,16 @@ impl AppUserBase {
             let uses_vec = self.app_user_base.get(&app_program_id).unwrap();
             let users_len = uses_vec.users.len();
             users_len
+        } else {
+            panic!("cant find the app")
+        }
+    }
+
+    pub fn get_keypair_from_user_name(&mut self, app_program_id : Pubkey , user_name : String) -> &Keypair {
+        if self.app_user_base.contains_key(&app_program_id) {
+            let user_keypair = self.app_user_base.get_mut(&app_program_id).unwrap();
+            let user_key = user_keypair.users.get_mut(&user_name).unwrap();
+            user_key
         } else {
             panic!("cant find the app")
         }
