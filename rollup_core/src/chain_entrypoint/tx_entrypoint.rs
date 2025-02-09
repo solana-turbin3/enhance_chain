@@ -176,18 +176,16 @@ impl ChainTransaction {
         let from_key = transaction_on_thread_1[0].from_key.insecure_clone();
         println!("fromkey{:?}",from_key.pubkey());
  
-    
-        let accounts: Vec<(Pubkey, solana_sdk::account::AccountSharedData)> = vec![
-            (from_key.pubkey(), system_account(10_000_000)),
-        ];
+
+        let accounts  = prepare_account_for_the_transaction(transaction_on_thread_1.clone());
     
         let context = TestValidatorContext::start_with_accounts(accounts);
         let test_validator = &context.test_validator;
         let payer = context.payer.insecure_clone();
     
         let rpc_client = test_validator.get_rpc_client();
-        
-        let paytube_channel = PayTubeChannel::new(vec![payer , from_key.insecure_clone()], rpc_client);
+        let transaction_keys = prepare_key_for_trnasactions(transaction_on_thread_1, payer);
+        let paytube_channel = PayTubeChannel::new(transaction_keys, rpc_client);
 
         
         paytube_channel.process_paytube_transfers(&[
@@ -200,7 +198,7 @@ impl ChainTransaction {
             ]);
 
         println!("metadata {:?}", final_transaction_metadata);
-        paytube_channel.process_paytube_transfers(final_transaction_metadata);
+        //paytube_channel.process_paytube_transfers(final_transaction_metadata);
         
     }
     
@@ -219,4 +217,25 @@ pub fn get_all_transaction_metadata_from_transaction(transaction : Vec<&MakeTran
         metadata_vec.push(transaction_metadata);
     }
     metadata_vec
+}
+
+pub fn prepare_key_for_trnasactions(transaction : Vec<&MakeTransaction> , payer : Keypair) -> Vec<Keypair>{
+       
+    let mut key_vec : Vec<Keypair> = vec![];
+    key_vec.push(payer);
+    for transaction in transaction {
+        key_vec.push(transaction.from_key.insecure_clone());
+        
+    }
+    key_vec
+}
+
+pub fn prepare_account_for_the_transaction(transaction : Vec<&MakeTransaction>) -> Vec<(Pubkey,solana_sdk::account::AccountSharedData)> {
+    let mut account : Vec<(Pubkey, solana_sdk::account::AccountSharedData)> =  vec![];
+
+    for transaction in transaction {
+        account.push((transaction.from_key.pubkey() , system_account(20_000_000)));
+    }
+
+    account
 }
