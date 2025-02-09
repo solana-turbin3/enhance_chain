@@ -175,16 +175,10 @@ impl ChainTransaction {
 
         let from_key = transaction_on_thread_1[0].from_key.insecure_clone();
         println!("fromkey{:?}",from_key.pubkey());
-        // let to_key = transaction_on_thread_1[0].to_key.insecure_clone();
-        // let alice = Keypair::new();
-        // let bob = Keypair::new();
-
-        // let alice_pubkey = alice.pubkey();
-        // let bob_pubkey = bob.pubkey();
+ 
     
         let accounts: Vec<(Pubkey, solana_sdk::account::AccountSharedData)> = vec![
             (from_key.pubkey(), system_account(10_000_000)),
-            // (to_key.pubkey(), system_account(10_000_000)),
         ];
     
         let context = TestValidatorContext::start_with_accounts(accounts);
@@ -195,8 +189,7 @@ impl ChainTransaction {
         
         let paytube_channel = PayTubeChannel::new(vec![payer , from_key.insecure_clone()], rpc_client);
 
-        // println!("metadata {:?}", final_transaction_metadata);
-
+        
         paytube_channel.process_paytube_transfers(&[
             ForTransferTransaction {
                 from : transaction_metadata[0].from,
@@ -204,39 +197,10 @@ impl ChainTransaction {
                 amount : 2_000_000,
                 mint : None
             }
-        ]);
-        // paytube_channel.process_paytube_transfers(final_transaction_metadata);
+            ]);
 
-        // paytube_channel.process_paytube_transfers(&[
-        //     // Alice -> Bob 2_000_000
-        //     ForTransferTransaction {
-        //         from: alice_pubkey,
-        //         to: bob_pubkey,
-        //         amount: 2_000_000,
-        //         mint: None,
-        //     },
-        //     // Bob -> Will 5_000_000
-        //     ForTransferTransaction {
-        //         from: bob_pubkey,
-        //         to: will_pubkey,
-        //         amount: 5_000_000,
-        //         mint: None,
-        //     },
-        //     // Alice -> Bob 2_000_000
-        //     ForTransferTransaction {
-        //         from: alice_pubkey,
-        //         to: bob_pubkey,
-        //         amount: 2_000_000,
-        //         mint: None,
-        //     },
-        //     // Will -> Alice 1_000_000
-        //     ForTransferTransaction {
-        //         from: will_pubkey,
-        //         to: alice_pubkey,
-        //         amount: 1_000_000,
-        //         mint: None,
-        //     },
-        // ]);
+        println!("metadata {:?}", final_transaction_metadata);
+        paytube_channel.process_paytube_transfers(final_transaction_metadata);
         
     }
     
