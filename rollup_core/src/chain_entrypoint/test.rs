@@ -75,6 +75,7 @@ fn test_full_flow() {
 
    chain_trnasaction.process_all_transaction_from_thread_1(transaction_on_thread);
 
+   println!("thread_load_counter {:?}" , thread_load_counter.load_counter)
    
 
 }
