@@ -1,5 +1,7 @@
 use solana_sdk::pubkey::Pubkey;
 
+use crate::scheduler::read_write_locks::ThreadLoadCounter;
+
 use super::read_write_locks::ThreadAwareLocks;
 
 /// LOCKING TESTS ///
@@ -109,11 +111,11 @@ fn test_conflict_account_write_lock() {
 fn test_schedule_on_thread_with_only_write() {
     const TEST_NUM_THREADS: usize = 4;
     let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
-
+    let mut thread_load_counter = ThreadLoadCounter::default();
     let pk1 = Pubkey::new_unique();
     locks.write_lock_account(pk1, 1);
 
-    let schedulable_thread = locks.schedule_on_threads(pk1,true);
+    let schedulable_thread = locks.schedule_on_threads(pk1,true,&mut thread_load_counter);
     println!("{:?}",schedulable_thread)
 }
 
@@ -121,11 +123,11 @@ fn test_schedule_on_thread_with_only_write() {
 fn test_schedule_on_thread_with_read_and_write() {
     const TEST_NUM_THREADS: usize = 4;
     let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
-
+    let mut thread_load_counter = ThreadLoadCounter::default();
     let pk1 = Pubkey::new_unique();
     locks.write_lock_account(pk1, 1);
     locks.read_account_lock(pk1, 1);
-    let schedulable_thread = locks.schedule_on_threads(pk1,true);
+    let schedulable_thread = locks.schedule_on_threads(pk1,true,&mut thread_load_counter);
     assert_eq!(
         schedulable_thread,
         Some(1)
@@ -142,20 +144,20 @@ fn test_accounts_schedulable_threads_1() {
 
     const TEST_NUM_THREADS: usize = 4;
     let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
-
+    let mut thread_load_counter = ThreadLoadCounter::default();
     locks.read_account_lock(pk1, 2);
-    let scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![pk1,pk2] , vec![]);
+    let scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![pk1,pk2] , vec![],&mut thread_load_counter);
 
     assert_eq!(
-        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone()).len(),
+        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone(),&mut thread_load_counter).len(),
         1
     );
     assert_eq!(
-        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone())[0],
+        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone(),&mut thread_load_counter)[0],
         2
     );
 
-    println!("{:?}",locks.simplefy_threads(scheduable_thread_for_new_tsx))
+    println!("{:?}",locks.simplefy_threads(scheduable_thread_for_new_tsx,&mut thread_load_counter))
 
 }
 
@@ -166,20 +168,20 @@ fn test_accounts_schedulable_threads_2() {
     let ANY_THREAD : usize = 1;
     const TEST_NUM_THREADS: usize = 4;
     let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
-
+    let mut thread_load_counter = ThreadLoadCounter::default();
     locks.read_account_lock(pk1, 2);
-    let scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![] , vec![pk1,pk2]);
+    let scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![] , vec![pk1,pk2],&mut thread_load_counter);
 
     assert_eq!(
-        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone()).len(),
+        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone(),&mut thread_load_counter).len(),
         1
     );
     assert_eq!(
-        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone())[0],
+        locks.simplefy_threads(scheduable_thread_for_new_tsx.clone(),&mut thread_load_counter)[0],
         ANY_THREAD
     );
 
-    println!("{:?}",locks.simplefy_threads(scheduable_thread_for_new_tsx))
+    println!("{:?}",locks.simplefy_threads(scheduable_thread_for_new_tsx,&mut thread_load_counter))
 
 }
 
@@ -190,10 +192,10 @@ fn test_accounts_schedulable_threads_3() {
     let pk2 = Pubkey::new_unique(); 
     const TEST_NUM_THREADS: usize = 4;
     let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
-
+    let mut thread_load_counter = ThreadLoadCounter::default();
     locks.read_account_lock(pk1, 1);
     locks.read_account_lock(pk1, 2);
-    let _scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![pk1,pk2] , vec![]);
+    let _scheduable_thread_for_new_tsx = locks.accounts_schedulable_threads(vec![pk1,pk2] , vec![],&mut thread_load_counter);
 }
 
 #[test]
@@ -203,11 +205,11 @@ fn test_try_lock_account_with_conflict() {
     let pk2 = Pubkey::new_unique(); 
     const TEST_NUM_THREADS: usize = 4;
     let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
-
+    let mut thread_load_counter = ThreadLoadCounter::default();
     locks.read_account_lock(pk1, 2);
     locks.read_account_lock(pk1, 3);
 
-    locks.try_lock_account(vec![pk1], vec![pk2]);
+    locks.try_lock_account(vec![pk1], vec![pk2],&mut thread_load_counter);
 } 
 
 #[test]
@@ -216,12 +218,51 @@ fn test_try_lock_account_with_no_conflict() {
     let pk2 = Pubkey::new_unique(); 
     const TEST_NUM_THREADS: usize = 4;
     let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
-
+    let mut thread_load_counter = ThreadLoadCounter::default();
     locks.write_lock_account(pk1, 2);
 
     assert_eq!(
-        locks.try_lock_account(vec![pk1], vec![pk2]),
+        locks.try_lock_account(vec![pk1], vec![pk2],&mut thread_load_counter),
         Some(2)
     )
 
 } 
+
+#[test]
+fn test_randomness() {
+    let pk1 = Pubkey::new_unique();
+    let pk2 = Pubkey::new_unique(); 
+    let pk3 = Pubkey::new_unique(); 
+    //let pk4 = Pubkey::new_unique();
+    const TEST_NUM_THREADS: usize = 4;
+    let mut locks = ThreadAwareLocks::new(TEST_NUM_THREADS);
+    let mut thread_load_counter = ThreadLoadCounter::default();
+    let tx1 = locks.try_lock_account(vec![], vec![pk1],&mut thread_load_counter);
+    let tx2 = locks.try_lock_account(vec![], vec![pk1],&mut thread_load_counter);
+    let tx3 = locks.try_lock_account(vec![], vec![pk2], &mut thread_load_counter);
+    let tx4 = locks.try_lock_account(vec![pk3], vec![], &mut thread_load_counter);
+    let tx5 = locks.try_lock_account(vec![pk3], vec![], &mut thread_load_counter);
+
+    //let tx6 = locks.try_lock_account(vec![pk4], vec![], &mut thread_load_counter);
+
+
+    println!("{:?}",tx1);
+    println!("{:?}",tx2);
+    println!("{:?}",tx3);
+    println!("{:?}",tx4);
+    println!("{:?}",tx5);
+    //println!("{:?}",tx6);
+
+    println!("{:?}",thread_load_counter.load_counter)
+}
+
+#[test]
+fn test_load_increaser() {
+    let mut thread_load_counter = ThreadLoadCounter::default();
+    
+    thread_load_counter.increase_load_count(1);
+    thread_load_counter.increase_load_count(2);
+    thread_load_counter.increase_load_count(3);
+
+    println!("{:?}",thread_load_counter)
+}

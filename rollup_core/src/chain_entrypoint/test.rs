@@ -1,6 +1,6 @@
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 
-use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::ForTransferTransaction, scheduler::read_write_locks::ThreadAwareLocks, users_handler::user_handler::AppUserBase};
+use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::ForTransferTransaction, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
 use super::tx_entrypoint::ChainTransaction;
 
@@ -10,6 +10,7 @@ fn test_full_flow() {
 
     let mut chain_trnasaction = ChainTransaction::default();
     let mut app_user_base = AppUserBase::default();
+    let mut thread_load_counter = ThreadLoadCounter::default();
 
     let program_id = Keypair::new().pubkey();
     app_user_base.register_app(program_id);
@@ -52,7 +53,7 @@ fn test_full_flow() {
     1
    );
 
-   chain_trnasaction.take_out_individual_transaction_and_apply_RWlocks(&mut lineup_queue, &mut thread_aware_locks,&mut transaction_on_thread);
+   chain_trnasaction.take_out_individual_transaction_and_apply_RWlocks(&mut lineup_queue, &mut thread_aware_locks,&mut transaction_on_thread,&mut thread_load_counter);
 
    assert_eq!(
     chain_trnasaction.chain_transaction.len(),

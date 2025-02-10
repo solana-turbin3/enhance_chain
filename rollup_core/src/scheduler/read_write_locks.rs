@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ptr::NonNull};
+use std::collections::HashMap;
 use solana_sdk::pubkey::Pubkey;
 
 /// Identifier for a thread
@@ -30,6 +30,69 @@ pub struct ThreadAwareLocks {
     pub locks : HashMap<Pubkey,AccountLocks>
 }
 
+#[derive(Debug)]
+pub struct ThreadLoadCounter {
+    // thread_id and load_count
+    pub load_counter : HashMap<usize,usize>
+}
+
+impl Default for ThreadLoadCounter {
+    fn default() -> Self {
+        let mut load_counter = HashMap::new();
+        load_counter.insert(1, 0);
+        load_counter.insert(2, 0);
+        load_counter.insert(3, 0);
+        load_counter.insert(4, 0);
+        ThreadLoadCounter {
+            load_counter
+        }
+    }
+}
+
+impl ThreadLoadCounter {
+    pub fn increase_load_count(&mut self,theard_id:usize) {
+        let thread_load = self.load_counter.get(&theard_id).unwrap();   
+        let new_load = thread_load + 1;
+        self.load_counter.insert(theard_id, new_load); 
+    }
+
+    // if a transaction can be scheduled on any thread, get the most optimal one
+    pub fn apply_load_balancing(&mut self) -> usize {
+        let mut final_optimal_thread = 0;
+        let mut load_summary: Vec<usize> = Vec::new();
+    
+        for i in 1..=4 {
+            if let Some(&load) = self.load_counter.get(&i) {
+                load_summary.push(load);
+             } 
+            //else {
+            //     load_summary.push(usize::MAX);
+            // }
+        }
+    
+        //println!("load summary {:?}", load_summary);
+    
+        for (index, &load) in load_summary.iter().enumerate() {
+            if load == 0 {
+                final_optimal_thread = index + 1;
+                break;
+            }
+        }
+    
+        //println!("final_optimal thread {:?}", final_optimal_thread);
+    
+        // If not able to find idle thread found, pick the least work load
+        if final_optimal_thread == 0 {
+            if let Some((index, _)) = load_summary.iter().enumerate().min_by_key(|&(_, &load)| load) {
+                final_optimal_thread = index + 1;
+            }
+        }
+    
+        final_optimal_thread
+    }
+    
+}
+
 impl ThreadAwareLocks {
 
     pub fn new(number_of_thread:usize) -> Self {
@@ -42,10 +105,15 @@ impl ThreadAwareLocks {
     pub fn try_lock_account(
         &mut self,
         write_account :Vec<Pubkey>,
-        read_account : Vec<Pubkey>
+        read_account : Vec<Pubkey>,
+        thread_load_counter : &mut ThreadLoadCounter
     ) -> Option<usize>{
-        let mut scheduable_threads = self.accounts_schedulable_threads(write_account.clone(), read_account.clone());
-        scheduable_threads = self.simplefy_threads(scheduable_threads);
+        let mut scheduable_threads = self.accounts_schedulable_threads(write_account.clone(), read_account.clone(),thread_load_counter);
+        //println!("before{:?}",scheduable_threads);
+        scheduable_threads = self.simplefy_threads(scheduable_threads,thread_load_counter);
+        // increase the load in the selected_thread
+        ThreadLoadCounter::increase_load_count(thread_load_counter, scheduable_threads[0]);
+        //println!("from_try{:?}",scheduable_threads);
         self.lock_account(write_account, read_account, scheduable_threads[0]);
         Some(scheduable_threads[0])
     }
@@ -54,15 +122,16 @@ impl ThreadAwareLocks {
         &mut self,
         write_account : Vec<Pubkey>,
         read_account : Vec<Pubkey>,
+        thread_load_counter : &mut ThreadLoadCounter
     ) -> Vec<usize> {
         let mut accounts_schedulable_threads: Vec<usize> = Vec::new();
 
         for account in write_account {
-            let schedulable_threads = self.schedule_on_threads(account,true);
+            let schedulable_threads = self.schedule_on_threads(account,true , thread_load_counter);
             accounts_schedulable_threads.push(schedulable_threads.unwrap());
         }
         for account in read_account {
-            let schedulable_threads = self.schedule_on_threads(account,false);
+            let schedulable_threads = self.schedule_on_threads(account,false , thread_load_counter);
             accounts_schedulable_threads.push(schedulable_threads.unwrap());
         }
         accounts_schedulable_threads
@@ -74,9 +143,9 @@ impl ThreadAwareLocks {
     // and here im removing those account thread_id because
     // these account doesnt impact where the parent transaction
     // will be scheduled and to simpleify stuff 
-    pub fn simplefy_threads(&mut self,mut account_schedable_thread: Vec<usize>) -> 
+    pub fn simplefy_threads(&mut self,mut account_schedable_thread: Vec<usize> , thread_load_counter : &mut ThreadLoadCounter) -> 
     Vec<usize> {
-        let any_thread : usize = 1;
+        let any_thread : usize = ThreadLoadCounter::apply_load_balancing(thread_load_counter);
         account_schedable_thread.retain(|&thread_id| thread_id != 100);
         // if account_schedable_thread.len() is 0, then the tsx can be scheduled in any of the thread
         if account_schedable_thread.len()==0 {
@@ -93,7 +162,7 @@ impl ThreadAwareLocks {
     ) {
 
         assert!(
-            thread_id < self.number_of_thread,
+            thread_id <= self.number_of_thread,
             "thread_id must be < num_threads"
         );
 
@@ -111,14 +180,17 @@ impl ThreadAwareLocks {
     //2. only write lock applied on the account -> write_lock.thread_id
     //3. read and write both locks are applied -> write_lock.thread_id
     //4. none -> none
-    pub fn schedule_on_threads(&mut self, account: Pubkey, for_write:bool) -> Option<usize> {
+    pub fn schedule_on_threads(&mut self, account: Pubkey, for_write:bool , thread_load_counter : &mut ThreadLoadCounter) -> Option<usize> {
         match self.locks.get(&account) {
             //None -> any/doesnt-care
+            // handle any
             None => Some(100),
             Some(AccountLocks {
                 write_lock : Some(write_lock),
                 read_lock : None
-            }) => Some(write_lock.thread_id),
+            }) => {
+                Some(write_lock.thread_id)
+            },
             // for a account, if both read and write
             // locks are there then schedulabe thread should only be one
             // can be related to other errors as well in read&write lock fun as well
@@ -137,11 +209,12 @@ impl ThreadAwareLocks {
                 write_lock : None,
                 read_lock : Some(read_lock)
             }) => {
-                let schedulable_thread = self.handle_only_read_condition(read_lock);
-                let any_thread = 1;
+                let any_thread = ThreadLoadCounter::apply_load_balancing(thread_load_counter);
                 if !for_write {
-                return Some(any_thread);
+                    //println!("check check{:?}",any_thread);
+                    return Some(any_thread);
                 } else {
+                    let schedulable_thread = self.handle_only_read_condition(read_lock);
                     schedulable_thread
                 }
             }
@@ -241,13 +314,13 @@ impl ThreadAwareLocks {
         }
 
        if let Some(read_lock) = read_lock {
-            read_lock.thread_set[thread_id] = true;
-            read_lock.lock_count[thread_id] +=1
+            read_lock.thread_set[thread_id-1] = true;
+            read_lock.lock_count[thread_id-1] +=1
        } else {
         let mut initial_thread_set = [false,false,false,false];
         let mut  lock_count = [0;MAX_THREAD];
-        lock_count[thread_id] +=1;
-        initial_thread_set[thread_id] = true;
+        lock_count[thread_id-1] +=1;
+        initial_thread_set[thread_id-1] = true;
         *read_lock = Some(AccountReadLocks {
             thread_set : initial_thread_set,
             lock_count 

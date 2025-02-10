@@ -1,7 +1,7 @@
 use std::{collections::HashMap, default};
 
 use solana_sdk::{blake3::Hash, pubkey::Pubkey, signature::Keypair, signer::Signer};
-use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::ForTransferTransaction}, scheduler::read_write_locks::ThreadAwareLocks, users_handler::user_handler::AppUserBase};
+use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::ForTransferTransaction}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
 // #[derive(Clone)]
 // pub struct TransferTransactionMetadata {
@@ -131,7 +131,7 @@ impl ChainTransaction {
 
     // full-up the transaction from lineup_queue and apply RW locks and schedule on threads
     //IMP -> all the clone stuff
-    pub fn take_out_individual_transaction_and_apply_RWlocks(&mut self,lineup_queue : &mut LineUpQueue, thread_aware_locks : &mut ThreadAwareLocks , transaction_on_thread : &mut TransactionsOnThread) {
+    pub fn take_out_individual_transaction_and_apply_RWlocks(&mut self,lineup_queue : &mut LineUpQueue, thread_aware_locks : &mut ThreadAwareLocks , transaction_on_thread : &mut TransactionsOnThread , thread_load_counter : &mut ThreadLoadCounter) {
         let transactions: Vec<_> = lineup_queue.lineup_queue.iter().cloned().collect();
         //TODO:
         //do not init trnasaction_on_thread as default, use existing value
@@ -141,7 +141,7 @@ impl ChainTransaction {
             let is_writeable_accounts_clone = transaction.txs_accounts.is_writeable_accounts.clone();
             let non_writeable_accounts_clone = transaction.txs_accounts.non_writeable_accounts.clone();
 
-            if let Some(scheduled_thread) = thread_aware_locks.try_lock_account(is_writeable_accounts_clone.clone(), non_writeable_accounts_clone.clone()) {
+            if let Some(scheduled_thread) = thread_aware_locks.try_lock_account(is_writeable_accounts_clone.clone(), non_writeable_accounts_clone.clone(),thread_load_counter) {
                 transaction_on_thread.trnasaction_on_thread.insert(transaction.id, scheduled_thread);
             }
             else {
