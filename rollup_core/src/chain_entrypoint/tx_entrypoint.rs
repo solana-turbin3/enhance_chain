@@ -26,7 +26,7 @@ pub struct ChainTransaction {
     pub chain_transaction  : HashMap<u64, MakeTransaction>
 }
 
-
+#[derive(Clone)]
 pub struct TransactionsOnThread {
     pub trnasaction_on_thread  : HashMap<u64,usize>
 }
@@ -93,9 +93,9 @@ impl ChainTransaction {
         }     
     }
 
-    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : ForTransferTransaction, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String) {
+    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : ForTransferTransaction, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String , tx_id : u64) {
         //create a new transaction and get everything to put in the add_queue func.
-        let new_transaction = self.create_new_transaction(1, "transfer".to_string(), AccountInvolvedInTransaction{
+        let new_transaction = self.create_new_transaction(tx_id, "transfer".to_string(), AccountInvolvedInTransaction{
             is_writeable_accounts : account.is_writeable_accounts,
             non_writeable_accounts : account.non_writeable_accounts
         },1 , ForTransferTransaction {
@@ -167,15 +167,12 @@ impl ChainTransaction {
     }
 
     
-    pub fn process_all_transaction_from_thread_1(&mut self, tsx_on_thread : TransactionsOnThread) {
-        let transaction_on_thread_1 = self.get_all_transaction_on_a_thread(tsx_on_thread, 1);
+    pub fn process_all_transaction_from_thread_1(&mut self, tsx_on_thread : TransactionsOnThread , thread_id : usize) {
+        let transaction_on_thread_1 = self.get_all_transaction_on_a_thread(tsx_on_thread, thread_id);
         println!("side_tx_res{:?}",transaction_on_thread_1);
         let transaction_metadata = get_all_transaction_metadata_from_transaction(transaction_on_thread_1.clone());
         let final_transaction_metadata  = transaction_metadata.as_slice();
 
-        let from_key = transaction_on_thread_1[0].from_key.insecure_clone();
-        println!("fromkey{:?}",from_key.pubkey());
- 
 
         let accounts  = prepare_account_for_the_transaction(transaction_on_thread_1.clone());
     
@@ -187,22 +184,10 @@ impl ChainTransaction {
         let transaction_keys = prepare_key_for_trnasactions(transaction_on_thread_1, payer);
         let paytube_channel = PayTubeChannel::new(transaction_keys, rpc_client);
 
-        
-        paytube_channel.process_paytube_transfers(&[
-            ForTransferTransaction {
-                from : transaction_metadata[0].from,
-                to : transaction_metadata[0].to,
-                amount : 2_000_000,
-                mint : None
-            }
-            ]);
-
         println!("metadata {:?}", final_transaction_metadata);
-        //paytube_channel.process_paytube_transfers(final_transaction_metadata);
+        paytube_channel.process_paytube_transfers(final_transaction_metadata);
         
     }
-    
-    
     
 }
 pub fn get_all_transaction_metadata_from_transaction(transaction : Vec<&MakeTransaction>) -> Vec<ForTransferTransaction> {

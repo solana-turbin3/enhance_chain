@@ -33,7 +33,20 @@ fn test_full_flow() {
         to : to.pubkey()
     };
 
+    let transaction_metadata_2 = ForTransferTransaction {
+        amount : 10_000_000,
+        mint : None,
+        from : user_key.pubkey(),
+        to : to.pubkey()
+    };
+
     let transaction_accounts = AccountInvolvedInTransaction {
+        is_writeable_accounts : vec![w_account],
+        non_writeable_accounts : vec![r_account]
+    };
+
+
+    let transaction_accounts_2 = AccountInvolvedInTransaction {
         is_writeable_accounts : vec![w_account],
         non_writeable_accounts : vec![r_account]
     };
@@ -42,7 +55,8 @@ fn test_full_flow() {
     let mut thread_aware_locks = ThreadAwareLocks::new(4);
     let mut transaction_on_thread = TransactionsOnThread::default();
     
-    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts, transaction_metadata , &mut app_user_base,program_id , "user1".to_string());
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts, transaction_metadata , &mut app_user_base,program_id , "user1".to_string(),1);
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts_2, transaction_metadata_2 , &mut app_user_base,program_id , "user1".to_string(),2);
 
    chain_trnasaction.put_all_the_transaction_in_the_lineup_queue(&mut lineup_queue);
 
@@ -50,19 +64,19 @@ fn test_full_flow() {
 
    assert_eq!(
     lineup_queue.lineup_queue.len(),
-    1
+    2
    );
 
    chain_trnasaction.take_out_individual_transaction_and_apply_RWlocks(&mut lineup_queue, &mut thread_aware_locks,&mut transaction_on_thread,&mut thread_load_counter);
 
    assert_eq!(
     chain_trnasaction.chain_transaction.len(),
-    1
+    2
    );
 
    assert_eq!(
     transaction_on_thread.trnasaction_on_thread.len(),
-    1
+    2
    );
 
    assert_eq!(
@@ -73,7 +87,7 @@ fn test_full_flow() {
    println!("tx_on_test{:?}",chain_trnasaction.chain_transaction);
    println!("len{:?}",transaction_on_thread.trnasaction_on_thread);
 
-   chain_trnasaction.process_all_transaction_from_thread_1(transaction_on_thread);
+   chain_trnasaction.process_all_transaction_from_thread_1(transaction_on_thread.clone() , 1);
 
    println!("thread_load_counter {:?}" , thread_load_counter.load_counter)
    
