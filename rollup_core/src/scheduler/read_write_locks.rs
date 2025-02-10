@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use solana_sdk::pubkey::Pubkey;
 
+use crate::line_up_queue::line_up_queue::LineUpQueue;
+
 /// Identifier for a thread
 const MAX_THREAD:usize = 4;
 pub type ThreadId = usize;
@@ -102,20 +104,25 @@ impl ThreadAwareLocks {
         }
     }
 
+    // IMP -> early return of None
     pub fn try_lock_account(
         &mut self,
         write_account :Vec<Pubkey>,
         read_account : Vec<Pubkey>,
         thread_load_counter : &mut ThreadLoadCounter
     ) -> Option<usize>{
-        let mut scheduable_threads = self.accounts_schedulable_threads(write_account.clone(), read_account.clone(),thread_load_counter);
-        //println!("before{:?}",scheduable_threads);
-        scheduable_threads = self.simplefy_threads(scheduable_threads,thread_load_counter);
-        // increase the load in the selected_thread
-        ThreadLoadCounter::increase_load_count(thread_load_counter, scheduable_threads[0]);
-        //println!("from_try{:?}",scheduable_threads);
-        self.lock_account(write_account, read_account, scheduable_threads[0]);
-        Some(scheduable_threads[0])
+        let mut scheduable_threads = self
+        .accounts_schedulable_threads(write_account.clone(), read_account.clone(), thread_load_counter);
+        scheduable_threads = self.simplefy_threads(scheduable_threads, thread_load_counter);
+
+    if scheduable_threads.is_empty() || scheduable_threads[0] == 1000 {
+        return None;
+    }
+
+    ThreadLoadCounter::increase_load_count(thread_load_counter, scheduable_threads[0]);
+    self.lock_account(write_account, read_account, scheduable_threads[0]);
+
+    Some(scheduable_threads[0])
     }
 
     pub fn accounts_schedulable_threads(
@@ -240,11 +247,10 @@ impl ThreadAwareLocks {
        .collect();
     let count = true_indicies.len();
        if count == 1 {
-       Some(true_indicies[0])
+       Some(true_indicies[0]+1)
     } else {
-        // TODO: handle re-schedule condition
-        //None
-        panic!("Cannot schedule because of multi-threading conflict")
+        // multi threading conflict
+        Some(1000)
     }
     }
 
@@ -264,7 +270,7 @@ impl ThreadAwareLocks {
      // other thread shouldnt be reading from it, it should be on the same thread
      if let Some(read_lock) = read_lock {
         let mut thread_set  = [false,false,false,false];
-        thread_set[thread_id] = true;
+        thread_set[thread_id-1] = true;
         assert_eq!(
             read_lock.thread_set,
             thread_set,

@@ -59,20 +59,24 @@ impl LineUpQueue {
     
     //IMP- clone()
     pub fn add_to_line_up(&mut self) {
-        let reschedable_txs_clone = self.reschedable_txs.clone();
-        for rescheduable_txs in reschedable_txs_clone {
-            self.add_transaction_to_non_rescheduable_container(
-                rescheduable_txs.id,
-                rescheduable_txs.tx_type,
-                rescheduable_txs.txs_accounts,
-                rescheduable_txs.priority,
-            );
+        
+        let i = 0;
+        while i < self.reschedable_txs.len() {
+            if self.rescheduable_budget <= TOTAL_RESCHEDUABLE_BUDGET {
+                let transaction = self.reschedable_txs.remove(i);
+                self.lineup_queue.push(TransactionsInQueue {
+                    id : transaction.id,
+                    txs_accounts : transaction.txs_accounts,
+                    priority : transaction.priority,
+                    tx_type : transaction.tx_type
+                });
+            }
         }
         
-        let mut i = 0;
+        let i = 0;
         while i < self.main_queue.len() {
-            if self.lineup_budget_counter < TOTAL_LINUP_BUDGET {
-                let transaction = self.main_queue.remove(i); // Removes transaction from main_queue
+            if self.lineup_budget_counter <= TOTAL_LINUP_BUDGET {
+                let transaction = self.main_queue.remove(i);
                 self.lineup_queue.push(TransactionsInQueue {
                     id: transaction.id,
                     txs_accounts: transaction.txs_accounts,

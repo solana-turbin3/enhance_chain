@@ -244,13 +244,14 @@ fn test_randomness() {
     let tx5 = locks.try_lock_account(vec![pk3], vec![], &mut thread_load_counter);
 
     //let tx6 = locks.try_lock_account(vec![pk4], vec![], &mut thread_load_counter);
-    //let tx_err = locks.try_lock_account(vec![pk1], vec![], &mut thread_load_counter);
+    let tx_err = locks.try_lock_account(vec![pk1], vec![], &mut thread_load_counter);
 
     println!("{:?}",tx1);
     println!("{:?}",tx2);
     println!("{:?}",tx3);
     println!("{:?}",tx4);
     println!("{:?}",tx5);
+    println!("{:?}",tx_err);
     //println!("{:?}",tx6);
 
     println!("{:?}",thread_load_counter.load_counter)

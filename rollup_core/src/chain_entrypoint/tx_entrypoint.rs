@@ -219,7 +219,7 @@ pub fn prepare_account_for_the_transaction(transaction : Vec<&MakeTransaction>) 
     let mut account : Vec<(Pubkey, solana_sdk::account::AccountSharedData)> =  vec![];
 
     for transaction in transaction {
-        account.push((transaction.from_key.pubkey() , system_account(20_000_000)));
+        account.push((transaction.from_key.pubkey() , system_account(50_000_000)));
     }
 
     account
