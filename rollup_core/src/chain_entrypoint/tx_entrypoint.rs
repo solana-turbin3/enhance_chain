@@ -1,7 +1,7 @@
 use std::{collections::HashMap, default};
 
 use solana_sdk::{blake3::Hash, pubkey::Pubkey, signature::Keypair, signer::Signer};
-use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::ForTransferTransaction}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
+use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::TransactionMetadata}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
 // #[derive(Clone)]
 // pub struct TransferTransactionMetadata {
@@ -11,13 +11,19 @@ use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQ
 //     pub amount: u64,
 // }
 
+// hash
+// eunum
+// fetch stage
+// sig verify
+// shimmer algo
+
 #[derive(Debug)]
 pub struct  MakeTransaction {
     pub id : u64,
     pub tx_type : String,
     pub accounts : AccountInvolvedInTransaction,
     pub priority_level : u64,
-    pub transaction_metadata : ForTransferTransaction,
+    pub transaction_metadata : TransactionMetadata,
     pub from_key : Keypair,
 }
 
@@ -65,7 +71,7 @@ impl Default for ChainTransaction  {
 
 impl ChainTransaction {
 
-    pub fn create_new_transaction(&mut self,id:u64,tx_type : String, account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : ForTransferTransaction , user: &mut AppUserBase , program_id : Pubkey , user_name : String) -> MakeTransaction  {
+    pub fn create_new_transaction(&mut self,id:u64,tx_type : String, account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : TransactionMetadata , user: &mut AppUserBase , program_id : Pubkey , user_name : String) -> MakeTransaction  {
         let from_key = user.get_keypair_from_user_name(program_id, user_name);
         println!("{:?}",from_key.pubkey());
         self.chain_transaction.insert(id, MakeTransaction {
@@ -93,12 +99,12 @@ impl ChainTransaction {
         }     
     }
 
-    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : ForTransferTransaction, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String , tx_id : u64) {
+    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : TransactionMetadata, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String , tx_id : u64) {
         //create a new transaction and get everything to put in the add_queue func.
         let new_transaction = self.create_new_transaction(tx_id, "transfer".to_string(), AccountInvolvedInTransaction{
             is_writeable_accounts : account.is_writeable_accounts,
             non_writeable_accounts : account.non_writeable_accounts
-        },1 , ForTransferTransaction {
+        },1 , TransactionMetadata {
             mint : Some(transaction_metadata.mint).unwrap(),
             from : transaction_metadata.from,
             to : transaction_metadata.to,
@@ -129,13 +135,10 @@ impl ChainTransaction {
         lineup_queue.clear_lineup_queue_for_next_batch();
     }
 
-    // full-up the transaction from lineup_queue and apply RW locks and schedule on threads
-    //IMP -> all the clone stuff
+    
     pub fn take_out_individual_transaction_and_apply_RWlocks(&mut self,lineup_queue : &mut LineUpQueue, thread_aware_locks : &mut ThreadAwareLocks , transaction_on_thread : &mut TransactionsOnThread , thread_load_counter : &mut ThreadLoadCounter) {
         let transactions: Vec<_> = lineup_queue.lineup_queue.iter().cloned().collect();
-        //TODO:
-        //do not init trnasaction_on_thread as default, use existing value
-        // let mut trnasaction_on_thread =  TransactionsOnThread::default();
+
         for transaction in transactions {
 
             let is_writeable_accounts_clone = transaction.txs_accounts.is_writeable_accounts.clone();
@@ -190,10 +193,10 @@ impl ChainTransaction {
     }
     
 }
-pub fn get_all_transaction_metadata_from_transaction(transaction : Vec<&MakeTransaction>) -> Vec<ForTransferTransaction> {
-    let mut metadata_vec : Vec<ForTransferTransaction> = Vec::new();
+pub fn get_all_transaction_metadata_from_transaction(transaction : Vec<&MakeTransaction>) -> Vec<TransactionMetadata> {
+    let mut metadata_vec : Vec<TransactionMetadata> = Vec::new();
     for transaction in transaction {
-        let transaction_metadata = ForTransferTransaction {
+        let transaction_metadata = TransactionMetadata {
            mint : transaction.transaction_metadata.mint,
           to : transaction.transaction_metadata.to,
           from : transaction.transaction_metadata.from,

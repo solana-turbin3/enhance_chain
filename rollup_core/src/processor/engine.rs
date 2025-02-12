@@ -1,6 +1,6 @@
 
 use crate::processor::settler::PayTubeSettler;
-use crate::processor::transaction::ForTransferTransaction;
+use crate::processor::transaction::TransactionMetadata;
 use super::loader::PayTubeAccountLoader;
 
 use {  
@@ -45,10 +45,10 @@ impl PayTubeChannel {
     /// * Custom Solana transaction ordering (e.g. MEV).
     ///
     /// The general scaffold of the PayTube API would remain the same.
-    pub fn process_paytube_transfers(&self, transactions: &[ForTransferTransaction]) {
+    pub fn process_paytube_transfers(&self, transactions: &[TransactionMetadata]) {
         // PayTube default configs.
         crate::processor::log::setup_solana_logging();
-        crate::processor::log::creating_paytube_channel();
+        //crate::processor::log::creating_paytube_channel();
         let compute_budget = ComputeBudget::default();
         let feature_set = FeatureSet::all_enabled();
         let fee_structure = FeeStructure::default();

@@ -9,7 +9,7 @@ use {
 };
 
 #[derive(Clone,Debug)]
-pub struct ForTransferTransaction {
+pub struct TransactionMetadata {
     pub mint: Option<Pubkey>,
     pub from: Pubkey,
     pub to: Pubkey,
@@ -17,9 +17,9 @@ pub struct ForTransferTransaction {
 }
 
 
-impl From<&ForTransferTransaction> for SolanaInstruction {
-    fn from(value: &ForTransferTransaction) -> Self {
-        let ForTransferTransaction {
+impl From<&TransactionMetadata> for SolanaInstruction {
+    fn from(value: &TransactionMetadata) -> Self {
+        let TransactionMetadata {
             mint,
             from,
             to,
@@ -43,14 +43,14 @@ impl From<&ForTransferTransaction> for SolanaInstruction {
     }
 }
 
-impl From<&ForTransferTransaction> for SolanaTransaction {
-    fn from(value: &ForTransferTransaction) -> Self {
+impl From<&TransactionMetadata> for SolanaTransaction {
+    fn from(value: &TransactionMetadata) -> Self {
         SolanaTransaction::new_with_payer(&[SolanaInstruction::from(value)], Some(&value.from))
     }
 }
 
-impl From<&ForTransferTransaction> for SolanaSanitizedTransaction {
-    fn from(value: &ForTransferTransaction) -> Self {
+impl From<&TransactionMetadata> for SolanaSanitizedTransaction {
+    fn from(value: &TransactionMetadata) -> Self {
         SolanaSanitizedTransaction::try_from_legacy_transaction(
             SolanaTransaction::from(value),
             &HashSet::new(),
@@ -62,7 +62,7 @@ impl From<&ForTransferTransaction> for SolanaSanitizedTransaction {
 /// Create a batch of Solana transactions, for the Solana SVM's transaction
 /// processor, from a batch of PayTube instructions.
 pub fn create_svm_transactions(
-    paytube_transactions: &[ForTransferTransaction],
+    paytube_transactions: &[TransactionMetadata],
 ) -> Vec<SolanaSanitizedTransaction> {
     paytube_transactions
         .iter()

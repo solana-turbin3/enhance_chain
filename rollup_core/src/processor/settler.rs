@@ -1,5 +1,5 @@
 use {
-    super::transaction::ForTransferTransaction, solana_client::{rpc_client::RpcClient, rpc_config::RpcSendTransactionConfig}, solana_sdk::{
+    super::transaction::TransactionMetadata, solana_client::{rpc_client::RpcClient, rpc_config::RpcSendTransactionConfig}, solana_sdk::{
         commitment_config::CommitmentConfig, instruction::Instruction as SolanaInstruction,
         pubkey::Pubkey, signature::Keypair, signer::Signer, system_instruction,
         transaction::Transaction as SolanaTransaction,
@@ -21,7 +21,7 @@ struct Ledger {
 
 impl Ledger {
     fn new(
-        paytube_transactions: &[ForTransferTransaction],
+        paytube_transactions: &[TransactionMetadata],
         svm_output: LoadAndExecuteSanitizedTransactionsOutput,
     ) -> Self {
         let mut ledger: HashMap<LedgerKey, i128> = HashMap::new();
@@ -94,7 +94,7 @@ impl<'a> PayTubeSettler<'a> {
     /// transfers into a ledger.
     pub fn new(
         rpc_client: &'a RpcClient,
-        paytube_transactions: &[ForTransferTransaction],
+        paytube_transactions: &[TransactionMetadata],
         svm_output: LoadAndExecuteSanitizedTransactionsOutput,
         keys: &'a [Keypair],
     ) -> Self {

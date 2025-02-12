@@ -1,6 +1,6 @@
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 
-use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::ForTransferTransaction, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
+use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::TransactionMetadata, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
 use super::tx_entrypoint::ChainTransaction;
 
@@ -27,21 +27,21 @@ fn test_full_flow() {
     let r_account = Keypair::new().pubkey();
     let to = Keypair::new();
 
-    let transaction_metadata = ForTransferTransaction {
+    let transaction_metadata = TransactionMetadata {
         amount : 10_000_000,
         mint : None,
         from : user_key.pubkey(),
         to : to.pubkey()
     };
 
-    let transaction_metadata_2 = ForTransferTransaction {
+    let transaction_metadata_2 = TransactionMetadata {
         amount : 10_000_000,
         mint : None,
         from : user_key.pubkey(),
         to : to.pubkey()
     };
 
-     let transaction_metadata_3 = ForTransferTransaction {
+     let transaction_metadata_3 = TransactionMetadata {
         amount : 10_000_000,
         mint : None,
         from : user_key.pubkey(),
@@ -81,13 +81,13 @@ fn test_full_flow() {
     3
    );
 
-   chain_trnasaction.take_out_individual_transaction_and_apply_RWlocks(&mut lineup_queue, &mut thread_aware_locks,&mut transaction_on_thread,&mut thread_load_counter);
-   
    assert_eq!(
     chain_trnasaction.chain_transaction.len(),
     3
    );
 
+   chain_trnasaction.take_out_individual_transaction_and_apply_RWlocks(&mut lineup_queue, &mut thread_aware_locks,&mut transaction_on_thread,&mut thread_load_counter);
+   
    assert_eq!(
     transaction_on_thread.trnasaction_on_thread.len(),
     2
@@ -102,7 +102,7 @@ fn test_full_flow() {
    println!("len{:?}",transaction_on_thread.trnasaction_on_thread);
 
    chain_trnasaction.process_all_transaction_from_thread_1(transaction_on_thread.clone() , 1);
-   //chain_trnasaction.process_all_transaction_from_thread_1(transaction_on_thread.clone() , 2);
+   chain_trnasaction.process_all_transaction_from_thread_1(transaction_on_thread.clone() , 2);
 
    println!("thread_load_counter {:?}" , thread_load_counter.load_counter)
    
