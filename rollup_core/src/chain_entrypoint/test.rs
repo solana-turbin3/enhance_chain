@@ -1,10 +1,11 @@
-use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
+use solana_sdk::{account::AccountSharedData, pubkey::Pubkey, signature::Keypair, signer::Signer, system_program};
 
 use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::{TransactionMetadata, TransactionType}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
 use super::tx_entrypoint::{AccountsMeta, ChainTransaction};
 
 #[test]
+
 
 fn test_full_flow() {
 
@@ -55,6 +56,12 @@ fn test_full_flow() {
             10_000_000
         ]
     };
+
+    // let transaction_metadata_2 = TransactionMetadata::CloseAccount {
+    //     account : Keypair::new().pubkey(),
+    //     destination : Keypair::new().pubkey(),
+    //     owner : user_key.pubkey(),
+    // };
 
     let transaction_metadata_3 = TransactionMetadata {
         txs_type : TransactionType::Transfer,

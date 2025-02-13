@@ -225,9 +225,7 @@ impl ChainTransaction {
 
     
     pub fn take_out_individual_transaction_and_apply_RWlocks(&mut self,lineup_queue : &mut LineUpQueue, thread_aware_locks : &mut ThreadAwareLocks , transaction_on_thread : &mut TransactionsOnThread , thread_load_counter : &mut ThreadLoadCounter) {
-        println!("haha");
         let transactions: Vec<_> = lineup_queue.lineup_queue.iter().cloned().collect();
-        println!("jaja{:?}",transactions);
 
         for transaction in transactions {
 
@@ -252,7 +250,6 @@ impl ChainTransaction {
 
     pub fn get_all_transaction_on_a_thread(&mut  self,  tsx_on_thread : TransactionsOnThread, thread_id : usize) -> Vec<&MakeTransaction> {
         let ids: Vec<u64> = TransactionsOnThread::get_all_tx_ids_for_thread(&tsx_on_thread, thread_id);
-        print!("check_get_all{:?}",ids);
         let mut all_transaction_on_thread_id = Vec::new();
         for id in ids { 
             let single_txs = self.get_single_transaction_on_a_particular_thread(id);
@@ -267,6 +264,7 @@ impl ChainTransaction {
         println!("side_tx_res{:?}",transaction_on_thread_1);
         let transaction_metadata = get_all_transaction_metadata_from_transaction(transaction_on_thread_1.clone());
         let final_transaction_metadata  = transaction_metadata.as_slice();
+
 
         let accounts  = prepare_account_for_the_transaction(transaction_on_thread_1.clone());
     
