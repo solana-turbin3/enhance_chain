@@ -170,7 +170,7 @@ impl ChainTransaction {
     }
 
     
-    pub fn process_all_transaction_from_thread_1(&mut self, tsx_on_thread : TransactionsOnThread , thread_id : usize) {
+    pub fn process_all_transaction_from_threads(&mut self, tsx_on_thread : TransactionsOnThread , thread_id : usize) {
         let transaction_on_thread_1 = self.get_all_transaction_on_a_thread(tsx_on_thread, thread_id);
         println!("side_tx_res{:?}",transaction_on_thread_1);
         let transaction_metadata = get_all_transaction_metadata_from_transaction(transaction_on_thread_1.clone());
@@ -191,6 +191,12 @@ impl ChainTransaction {
         paytube_channel.process_paytube_transfers(final_transaction_metadata);
         
     }
+
+    pub fn process_all_transactions(&mut self,tsx_on_thread : TransactionsOnThread ) {
+        self.process_all_transaction_from_threads(tsx_on_thread.clone(), 1);
+        self.process_all_transaction_from_threads(tsx_on_thread.clone(), 2);
+    }
+
     
 }
 pub fn get_all_transaction_metadata_from_transaction(transaction : Vec<&MakeTransaction>) -> Vec<TransactionMetadata> {

@@ -101,8 +101,8 @@ fn test_full_flow() {
    println!("tx_on_test{:?}",chain_trnasaction.chain_transaction);
    println!("len{:?}",transaction_on_thread.trnasaction_on_thread);
 
-   chain_trnasaction.process_all_transaction_from_thread_1(transaction_on_thread.clone() , 1);
-   chain_trnasaction.process_all_transaction_from_thread_1(transaction_on_thread.clone() , 2);
+
+   chain_trnasaction.process_all_transactions(transaction_on_thread.clone());
 
    println!("thread_load_counter {:?}" , thread_load_counter.load_counter)
    
