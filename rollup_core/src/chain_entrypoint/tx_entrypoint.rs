@@ -3,13 +3,6 @@ use std::hash::{Hash, Hasher};
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::{TransactionMetadata, TransactionType}}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
-// #[derive(Clone)]
-// pub struct TransferTransactionMetadata {
-//     pub mint: Option<Pubkey>,
-//     pub from: Pubkey,
-//     pub to: Pubkey,
-//     pub amount: u64,
-// }
 
 // hash done
 // eunum done 
@@ -24,7 +17,6 @@ use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQ
 #[derive(Debug)]
 pub struct  MakeTransaction {
     pub id : u64,
-    pub tx_type : String,
     pub accounts : AccountInvolvedInTransaction,
     pub priority_level : u64,
     pub transaction_metadata : TransactionMetadata,
@@ -75,12 +67,11 @@ impl Default for ChainTransaction  {
 
 impl ChainTransaction {
 
-    pub fn create_new_transaction(&mut self,id:u64,tx_type : String, account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : TransactionMetadata , user: &mut AppUserBase , program_id : Pubkey , user_name : String) -> MakeTransaction  {
+    pub fn create_new_transaction(&mut self,id:u64,account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : TransactionMetadata , user: &mut AppUserBase , program_id : Pubkey , user_name : String) -> MakeTransaction  {
         let from_key = user.get_keypair_from_user_name(program_id, user_name);
         println!("{:?}",from_key.pubkey());
         self.chain_transaction.insert(id, MakeTransaction {
             id : id,
-            tx_type : tx_type.clone(),
             accounts : AccountInvolvedInTransaction {
                 is_writeable_accounts : account.is_writeable_accounts.clone(),
                 non_writeable_accounts : account.non_writeable_accounts.clone()
@@ -92,7 +83,6 @@ impl ChainTransaction {
         });   
         MakeTransaction {
             id : id,
-            tx_type : tx_type,
             accounts : AccountInvolvedInTransaction {
                 is_writeable_accounts : account.is_writeable_accounts,
                 non_writeable_accounts : account.non_writeable_accounts
@@ -106,7 +96,7 @@ impl ChainTransaction {
     pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : TransactionMetadata, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String) {
         //create a new transaction and get everything to put in the add_queue func.
         let hashed_id = self.create_hash(transaction_metadata.clone());
-        let new_transaction = self.create_new_transaction(hashed_id, "transfer".to_string(), AccountInvolvedInTransaction{
+        let new_transaction = self.create_new_transaction(hashed_id, AccountInvolvedInTransaction{
             is_writeable_accounts : account.is_writeable_accounts,
             non_writeable_accounts : account.non_writeable_accounts
         },1 , 
@@ -133,7 +123,6 @@ impl ChainTransaction {
 
         lineup_queue.add_to_main_tx_queue( 
             new_transaction.id,
-            new_transaction.tx_type,
             new_transaction.accounts,
             new_transaction.priority_level
         );
@@ -170,7 +159,7 @@ impl ChainTransaction {
                 transaction_on_thread.trnasaction_on_thread.insert(transaction.id, scheduled_thread);
             }
             else {
-                lineup_queue.add_transaction_to_non_rescheduable_container(transaction.id, transaction.tx_type, transaction.txs_accounts, transaction.priority);
+                lineup_queue.add_transaction_to_non_rescheduable_container(transaction.id, transaction.txs_accounts, transaction.priority);
             }
             
         }

@@ -15,7 +15,6 @@ pub struct AccountInvolvedInTransaction {
 #[derive(Debug,Clone)]
 pub struct TransactionsInQueue {
     pub id : u64,
-    pub tx_type : String,
     pub txs_accounts : AccountInvolvedInTransaction,
     pub priority : u64,
 }
@@ -46,11 +45,10 @@ impl Default for LineUpQueue {
 
 impl LineUpQueue {
 
-    pub fn add_to_main_tx_queue(&mut self,id:u64,tx_type : String,txs_accounts:AccountInvolvedInTransaction,priority:u64) {
+    pub fn add_to_main_tx_queue(&mut self,id:u64,txs_accounts:AccountInvolvedInTransaction,priority:u64) {
         self.main_queue.push(
             TransactionsInQueue {
                 id,
-                tx_type,
                 txs_accounts,
                 priority,
             }
@@ -68,7 +66,6 @@ impl LineUpQueue {
                     id : transaction.id,
                     txs_accounts : transaction.txs_accounts,
                     priority : transaction.priority,
-                    tx_type : transaction.tx_type
                 });
             }
         }
@@ -81,7 +78,6 @@ impl LineUpQueue {
                     id: transaction.id,
                     txs_accounts: transaction.txs_accounts,
                     priority: transaction.priority,
-                    tx_type : transaction.tx_type
                 });
                 self.lineup_budget_counter += PER_LINEUP_BUDGET;
             } else {
@@ -114,8 +110,7 @@ impl LineUpQueue {
 
     pub fn add_transaction_to_non_rescheduable_container(
         &mut self,
-        id : u64,
-        tx_type : String, 
+        id : u64, 
         txs_accounts : AccountInvolvedInTransaction,
         priority : u64,
     ) {
@@ -123,14 +118,13 @@ impl LineUpQueue {
             self.reschedable_txs.push(
                 TransactionsInQueue {
                     id,
-                    tx_type,
                     txs_accounts,
                     priority,
                 }
             );
             self.rescheduable_budget += PER_RESCHEDUABLE_BUDGET
         } else {
-            self.add_to_main_tx_queue(id, tx_type,txs_accounts, priority);
+            self.add_to_main_tx_queue(id,txs_accounts, priority);
         }
     }
 
