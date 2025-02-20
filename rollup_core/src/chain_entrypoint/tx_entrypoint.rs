@@ -1,7 +1,7 @@
 use std::{collections::HashMap, default};
 
 use solana_sdk::{blake3::Hash, pubkey::Pubkey, signature::Keypair, signer::Signer};
-use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::TransactionMetadata}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
+use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::{TransactionMetadata, TransactionType}}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
 // #[derive(Clone)]
 // pub struct TransferTransactionMetadata {
@@ -104,16 +104,22 @@ impl ChainTransaction {
         let new_transaction = self.create_new_transaction(tx_id, "transfer".to_string(), AccountInvolvedInTransaction{
             is_writeable_accounts : account.is_writeable_accounts,
             non_writeable_accounts : account.non_writeable_accounts
-        },1 , TransactionMetadata {
-            keys : vec![
-            transaction_metadata.keys[0],
-            transaction_metadata.keys[1],
-            transaction_metadata.keys[2],
-            transaction_metadata.keys[3]
-            ],
-            args : vec![
-                transaction_metadata.args[0]
-            ]
+        },1 , 
+        match transaction_metadata.txs_type {
+            TransactionType::Transfer => {
+                TransactionMetadata {
+                    txs_type : TransactionType::Transfer,
+                    keys : vec![
+                    transaction_metadata.keys[0],
+                    transaction_metadata.keys[1],
+                    transaction_metadata.keys[2],
+                    transaction_metadata.keys[3]
+                    ],
+                    args : vec![
+                        transaction_metadata.args[0]
+                    ]
+                }
+            }
         },
         app_user_base,
         program_id,
@@ -206,18 +212,24 @@ impl ChainTransaction {
 }
 pub fn get_all_transaction_metadata_from_transaction(transaction : Vec<&MakeTransaction>) -> Vec<TransactionMetadata> {
     let mut metadata_vec : Vec<TransactionMetadata> = Vec::new();
+    let mut transaction_metadata; 
     for transaction in transaction {
-        let transaction_metadata = TransactionMetadata {
-         keys : vec![
-            transaction.transaction_metadata.keys[0],
-            transaction.transaction_metadata.keys[1],
-            transaction.transaction_metadata.keys[2],
-            transaction.transaction_metadata.keys[3]
-         ],
-         args : vec![
-            transaction.transaction_metadata.args[0]
-         ]
-        };
+        match transaction.transaction_metadata.txs_type { 
+            TransactionType::Transfer => {
+                transaction_metadata = TransactionMetadata {
+                 txs_type : TransactionType::Transfer,   
+                 keys : vec![
+                    transaction.transaction_metadata.keys[0],
+                    transaction.transaction_metadata.keys[1],
+                    transaction.transaction_metadata.keys[2],
+                    transaction.transaction_metadata.keys[3]
+                 ],
+                 args : vec![
+                    transaction.transaction_metadata.args[0]
+                 ]
+                };
+            }
+        }
         metadata_vec.push(transaction_metadata);
     }
     metadata_vec

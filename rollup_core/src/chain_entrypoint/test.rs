@@ -1,6 +1,6 @@
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 
-use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::TransactionMetadata, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
+use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::{TransactionMetadata, TransactionType}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
 use super::tx_entrypoint::ChainTransaction;
 
@@ -28,6 +28,7 @@ fn test_full_flow() {
     let to = Keypair::new();
 
     let transaction_metadata = TransactionMetadata {
+        txs_type : TransactionType::Transfer,
         keys : vec![
             Some(user_key.pubkey()),
             None,
@@ -41,6 +42,7 @@ fn test_full_flow() {
 
 
     let transaction_metadata_2 = TransactionMetadata {
+        txs_type : TransactionType::Transfer,
         keys : vec![
             Some(user_key.pubkey()),
             None,
@@ -53,6 +55,7 @@ fn test_full_flow() {
     };
 
     let transaction_metadata_3 = TransactionMetadata {
+        txs_type : TransactionType::Transfer,
         keys : vec![
             Some(user_key.pubkey()),
             None,
