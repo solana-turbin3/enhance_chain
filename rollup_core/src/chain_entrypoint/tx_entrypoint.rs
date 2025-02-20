@@ -14,6 +14,9 @@ use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQ
 // hash done
 // eunum done 
 // handle duplicate tsx
+// handle duplicate accounts
+        // Finds the index of each account in the instruction by its pubkey.
+        // Then normalizes / unifies the privileges of duplicate accounts.
 // fetch stage
 // sig verify
 // shimmer algo
