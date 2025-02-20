@@ -11,8 +11,9 @@ use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQ
 //     pub amount: u64,
 // }
 
-// hash
-// eunum
+// hash done
+// eunum done 
+// handle duplicate tsx
 // fetch stage
 // sig verify
 // shimmer algo
