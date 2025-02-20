@@ -1,6 +1,6 @@
-use std::{collections::HashMap, default};
-
-use solana_sdk::{blake3::Hash, pubkey::Pubkey, signature::Keypair, signer::Signer};
+use std::{collections::HashMap, default, hash::DefaultHasher};
+use std::hash::{Hash, Hasher};
+use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::{TransactionMetadata, TransactionType}}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
 // #[derive(Clone)]
@@ -99,9 +99,10 @@ impl ChainTransaction {
         }     
     }
 
-    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : TransactionMetadata, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String , tx_id : u64) {
+    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : TransactionMetadata, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String) {
         //create a new transaction and get everything to put in the add_queue func.
-        let new_transaction = self.create_new_transaction(tx_id, "transfer".to_string(), AccountInvolvedInTransaction{
+        let hashed_id = self.create_hash(transaction_metadata.clone());
+        let new_transaction = self.create_new_transaction(hashed_id, "transfer".to_string(), AccountInvolvedInTransaction{
             is_writeable_accounts : account.is_writeable_accounts,
             non_writeable_accounts : account.non_writeable_accounts
         },1 , 
@@ -140,6 +141,12 @@ impl ChainTransaction {
 
     pub fn sort_transaction_in_lineup_queue_by_priority(&mut self ,lineup_queue : &mut LineUpQueue) {
         lineup_queue.sort_linup_queue_according_to_priority(true);
+    }
+
+    pub fn create_hash(&mut self,tx_metadata : TransactionMetadata) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        tx_metadata.hash(&mut hasher);
+        hasher.finish()
     }
 
     pub fn clear_lineup_queue(&mut self,lineup_queue : &mut LineUpQueue) {

@@ -14,13 +14,13 @@ pub enum TransactionItem {
     Amount(u64)
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Hash)]
 pub enum TransactionType {
     Transfer = 0,
    // InitAccount = 1
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Hash)]
 pub struct TransactionMetadata {
     pub txs_type : TransactionType,
     pub keys : Vec<Option<Pubkey>>,

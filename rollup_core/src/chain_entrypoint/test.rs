@@ -25,7 +25,9 @@ fn test_full_flow() {
 
     let w_account = Keypair::new().pubkey();  
     let r_account = Keypair::new().pubkey();
-    let to = Keypair::new();
+    let to1 = Keypair::new();
+    let to2 = Keypair::new();
+    let to3 = Keypair::new();
 
     let transaction_metadata = TransactionMetadata {
         txs_type : TransactionType::Transfer,
@@ -33,7 +35,7 @@ fn test_full_flow() {
             Some(user_key.pubkey()),
             None,
             Some(user_key.pubkey()),
-            Some(to.pubkey())
+            Some(to1.pubkey())
         ],
         args : vec![
             10_000_000
@@ -47,7 +49,7 @@ fn test_full_flow() {
             Some(user_key.pubkey()),
             None,
             Some(user_key.pubkey()),
-            Some(to.pubkey())
+            Some(to2.pubkey())
         ],
         args : vec![
             10_000_000
@@ -60,7 +62,7 @@ fn test_full_flow() {
             Some(user_key.pubkey()),
             None,
             Some(user_key.pubkey()),
-            Some(to.pubkey())
+            Some(to3.pubkey())
         ],
         args : vec![
             10_000_000
@@ -87,9 +89,9 @@ fn test_full_flow() {
     let mut thread_aware_locks = ThreadAwareLocks::new(4);
     let mut transaction_on_thread = TransactionsOnThread::default();
     
-    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts, transaction_metadata , &mut app_user_base,program_id , "user1".to_string(),1);
-    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts_2, transaction_metadata_2 , &mut app_user_base,program_id , "user1".to_string(),2);
-    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts_3, transaction_metadata_3 , &mut app_user_base,program_id , "user1".to_string(),3);
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts, transaction_metadata , &mut app_user_base,program_id , "user1".to_string());
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts_2, transaction_metadata_2 , &mut app_user_base,program_id , "user1".to_string());
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts_3, transaction_metadata_3 , &mut app_user_base,program_id , "user1".to_string());
 
    chain_trnasaction.put_all_the_transaction_in_the_lineup_queue(&mut lineup_queue);
 
