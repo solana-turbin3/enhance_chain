@@ -28,24 +28,40 @@ fn test_full_flow() {
     let to = Keypair::new();
 
     let transaction_metadata = TransactionMetadata {
-        amount : 10_000_000,
-        mint : None,
-        from : user_key.pubkey(),
-        to : to.pubkey()
+        keys : vec![
+            Some(user_key.pubkey()),
+            None,
+            Some(user_key.pubkey()),
+            Some(to.pubkey())
+        ],
+        args : vec![
+            10_000_000
+        ]
     };
+
 
     let transaction_metadata_2 = TransactionMetadata {
-        amount : 10_000_000,
-        mint : None,
-        from : user_key.pubkey(),
-        to : to.pubkey()
+        keys : vec![
+            Some(user_key.pubkey()),
+            None,
+            Some(user_key.pubkey()),
+            Some(to.pubkey())
+        ],
+        args : vec![
+            10_000_000
+        ]
     };
 
-     let transaction_metadata_3 = TransactionMetadata {
-        amount : 10_000_000,
-        mint : None,
-        from : user_key.pubkey(),
-        to : to.pubkey()
+    let transaction_metadata_3 = TransactionMetadata {
+        keys : vec![
+            Some(user_key.pubkey()),
+            None,
+            Some(user_key.pubkey()),
+            Some(to.pubkey())
+        ],
+        args : vec![
+            10_000_000
+        ]
     };
 
     let transaction_accounts = AccountInvolvedInTransaction {

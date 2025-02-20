@@ -105,10 +105,15 @@ impl ChainTransaction {
             is_writeable_accounts : account.is_writeable_accounts,
             non_writeable_accounts : account.non_writeable_accounts
         },1 , TransactionMetadata {
-            mint : Some(transaction_metadata.mint).unwrap(),
-            from : transaction_metadata.from,
-            to : transaction_metadata.to,
-            amount : transaction_metadata.amount
+            keys : vec![
+            transaction_metadata.keys[0],
+            transaction_metadata.keys[1],
+            transaction_metadata.keys[2],
+            transaction_metadata.keys[3]
+            ],
+            args : vec![
+                transaction_metadata.args[0]
+            ]
         },
         app_user_base,
         program_id,
@@ -203,10 +208,15 @@ pub fn get_all_transaction_metadata_from_transaction(transaction : Vec<&MakeTran
     let mut metadata_vec : Vec<TransactionMetadata> = Vec::new();
     for transaction in transaction {
         let transaction_metadata = TransactionMetadata {
-           mint : transaction.transaction_metadata.mint,
-          to : transaction.transaction_metadata.to,
-          from : transaction.transaction_metadata.from,
-          amount : transaction.transaction_metadata.amount 
+         keys : vec![
+            transaction.transaction_metadata.keys[0],
+            transaction.transaction_metadata.keys[1],
+            transaction.transaction_metadata.keys[2],
+            transaction.transaction_metadata.keys[3]
+         ],
+         args : vec![
+            transaction.transaction_metadata.args[0]
+         ]
         };
         metadata_vec.push(transaction_metadata);
     }
