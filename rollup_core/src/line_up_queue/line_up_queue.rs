@@ -5,14 +5,13 @@ const PER_LINEUP_BUDGET : u32 = 1;
 
 const TOTAL_RESCHEDUABLE_BUDGET : u32  = 5;
 const PER_RESCHEDUABLE_BUDGET : u32 = 1;
-#[derive(Debug,Clone)]
-// isSigner
+#[derive(Debug,Clone,PartialEq)]
 pub struct AccountInvolvedInTransaction {
     pub is_writeable_accounts : Vec<Pubkey>,
     pub non_writeable_accounts : Vec<Pubkey>
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct TransactionsInQueue {
     pub id : u64,
     pub txs_accounts : AccountInvolvedInTransaction,
@@ -54,19 +53,51 @@ impl LineUpQueue {
             }
         );
     }
+
+    pub fn handle_transaction(&mut self , already_contained : bool , handle_main_queue : bool , trnansaction : TransactionsInQueue) {
+        if handle_main_queue {
+            if already_contained {
+                if PER_LINEUP_BUDGET <=5 {
+                    self.lineup_queue.push(trnansaction);
+                    self.lineup_budget_counter += PER_LINEUP_BUDGET;
+                } else {
+                    self.main_queue.push(trnansaction);
+                   
+                }
+            } else {
+                self.lineup_queue.push(trnansaction);
+                self.lineup_budget_counter += PER_LINEUP_BUDGET;
+            }
+        } else {
+            if already_contained {
+                if PER_RESCHEDUABLE_BUDGET <=5 {
+                    self.lineup_queue.push(trnansaction);
+                    self.lineup_budget_counter += PER_LINEUP_BUDGET;
+                } else {
+                   self.reschedable_txs.push(trnansaction);
+                   self.rescheduable_budget += PER_RESCHEDUABLE_BUDGET;
+                }
+            } else {
+                self.lineup_queue.push(trnansaction);
+                self.lineup_budget_counter += PER_LINEUP_BUDGET;
+            }
+        }
+    }
     
     //IMP- clone()
     pub fn add_to_line_up(&mut self) {
         
         let i = 0;
         while i < self.reschedable_txs.len() {
-            if self.rescheduable_budget <= TOTAL_RESCHEDUABLE_BUDGET {
+            if self.rescheduable_budget <= TOTAL_LINUP_BUDGET {
                 let transaction = self.reschedable_txs.remove(i);
-                self.lineup_queue.push(TransactionsInQueue {
+                let tsx = TransactionsInQueue {
                     id : transaction.id,
                     txs_accounts : transaction.txs_accounts,
                     priority : transaction.priority,
-                });
+                };
+                let already_contained = self.lineup_queue.contains(&tsx);
+                self.handle_transaction(already_contained, false, tsx);
             }
         }
         
@@ -74,14 +105,13 @@ impl LineUpQueue {
         while i < self.main_queue.len() {
             if self.lineup_budget_counter <= TOTAL_LINUP_BUDGET {
                 let transaction = self.main_queue.remove(i);
-                self.lineup_queue.push(TransactionsInQueue {
-                    id: transaction.id,
-                    txs_accounts: transaction.txs_accounts,
-                    priority: transaction.priority,
-                });
-                self.lineup_budget_counter += PER_LINEUP_BUDGET;
-            } else {
-                break;
+                let tsx = TransactionsInQueue {
+                    id : transaction.id,
+                    txs_accounts : transaction.txs_accounts,
+                    priority : transaction.priority,
+                };
+                let already_contained = self.lineup_queue.contains(&tsx);
+                self.handle_transaction(already_contained, true, tsx);
             }
         }
     }

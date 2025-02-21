@@ -70,13 +70,13 @@ fn test_full_flow() {
     };
 
     let transaction_accounts = AccountInvolvedInTransaction {
-        is_writeable_accounts : vec![],
+        is_writeable_accounts : vec![w_account,r_account],
         non_writeable_accounts : vec![r_account]
     };
 
 
     let transaction_accounts_2 = AccountInvolvedInTransaction {
-        is_writeable_accounts : vec![],
+        is_writeable_accounts : vec![w_account,r_account],
         non_writeable_accounts : vec![r_account]
     };
 
@@ -111,12 +111,12 @@ fn test_full_flow() {
    
    assert_eq!(
     transaction_on_thread.trnasaction_on_thread.len(),
-    2
+    3
    );
 
    assert_eq!(
     lineup_queue.reschedable_txs.len(),
-    1
+    0
    );
 
    println!("tx_on_test{:?}",chain_trnasaction.chain_transaction);
