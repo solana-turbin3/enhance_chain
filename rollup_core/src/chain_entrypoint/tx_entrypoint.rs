@@ -147,15 +147,15 @@ impl ChainTransaction {
     }
 
     //Optimiization while scheduling
-    pub fn normalize_accounts_previalges(&mut self , write_prevelaged_accounts : Vec<Pubkey> , mut read_prevelaged_account : Vec<Pubkey>)  -> Vec<Pubkey> {
-        for account in read_prevelaged_account.clone() {
-            if write_prevelaged_accounts.contains(&account) {
-                let index = read_prevelaged_account.iter().position(|&key| &key == &account).unwrap();
-                read_prevelaged_account.remove(index);
-            }
-        }
-        read_prevelaged_account
-    }
+    // pub fn normalize_accounts_previalges(&mut self , write_prevelaged_accounts : Vec<Pubkey> , mut read_prevelaged_account : Vec<Pubkey>)  -> Vec<Pubkey> {
+    //     for account in read_prevelaged_account.clone() {
+    //         if write_prevelaged_accounts.contains(&account) {
+    //             let index = read_prevelaged_account.iter().position(|&key| &key == &account).unwrap();
+    //             read_prevelaged_account.remove(index);
+    //         }
+    //     }
+    //     read_prevelaged_account
+    // }
 
     
     pub fn take_out_individual_transaction_and_apply_RWlocks(&mut self,lineup_queue : &mut LineUpQueue, thread_aware_locks : &mut ThreadAwareLocks , transaction_on_thread : &mut TransactionsOnThread , thread_load_counter : &mut ThreadLoadCounter) {
@@ -165,9 +165,9 @@ impl ChainTransaction {
 
             let is_writeable_accounts_clone = transaction.txs_accounts.is_writeable_accounts.clone();
             let non_writeable_accounts_clone = transaction.txs_accounts.non_writeable_accounts.clone();
-            let normalized_non_writeable_accounts = self.normalize_accounts_previalges(is_writeable_accounts_clone.clone(), non_writeable_accounts_clone);
+            //let normalized_non_writeable_accounts = self.normalize_accounts_previalges(is_writeable_accounts_clone.clone(), non_writeable_accounts_clone);
 
-            if let Some(scheduled_thread) = thread_aware_locks.try_lock_account(is_writeable_accounts_clone.clone(), normalized_non_writeable_accounts.clone(),thread_load_counter) {
+            if let Some(scheduled_thread) = thread_aware_locks.try_lock_account(is_writeable_accounts_clone.clone(), non_writeable_accounts_clone.clone(),thread_load_counter) {
                 transaction_on_thread.trnasaction_on_thread.insert(transaction.id, scheduled_thread);
             }
             else {
