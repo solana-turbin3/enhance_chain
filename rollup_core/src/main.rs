@@ -14,6 +14,7 @@ mod settle;
 pub mod pool;
 pub mod scheduler;
 pub mod line_up_queue;
+pub mod accounts_db;
 pub mod per_db;
 pub mod users_handler;
 pub mod error;
