@@ -65,6 +65,16 @@ impl TransactionsOnThread {
     }
 }
 
+impl AccountsMeta {
+    pub fn create_new_meta_with_signer(pubkey : Pubkey,is_writeable : bool) -> Self {
+        AccountsMeta {
+            key : pubkey,
+            is_writeable,
+            is_signer : true
+        }
+    }
+}
+
 impl Default for ChainTransaction  {
     fn default() -> Self {
         let chain_trnasaction = HashMap::new();
