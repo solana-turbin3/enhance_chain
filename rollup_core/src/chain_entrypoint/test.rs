@@ -1,8 +1,8 @@
-use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
+use solana_sdk::{instruction::AccountMeta, pubkey::Pubkey, signature::Keypair, signer::Signer};
 
 use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::{TransactionMetadata, TransactionType}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
-use super::tx_entrypoint::ChainTransaction;
+use super::tx_entrypoint::{AccountsMeta, ChainTransaction};
 
 #[test]
 
@@ -69,29 +69,45 @@ fn test_full_flow() {
         ]
     };
 
-    let transaction_accounts = AccountInvolvedInTransaction {
-        is_writeable_accounts : vec![w_account,r_account],
-        non_writeable_accounts : vec![r_account]
-    };
+    let transaction_account_meta = vec![
+        AccountsMeta {key : w_account , is_writeable : true , is_signer : true },
+        AccountsMeta {key : r_account , is_writeable : true , is_signer : true },
+        AccountsMeta {key : r_account , is_writeable : false , is_signer : true }
+    ];
+
+    let transaction_account_meta_2 = vec![
+        AccountsMeta {key : w_account , is_writeable : true , is_signer : true },
+        AccountsMeta {key : r_account , is_writeable : true , is_signer : true },
+        AccountsMeta {key : r_account , is_writeable : false , is_signer : true }
+    ];
+
+    let transaction_account_meta_3 = vec![
+        AccountsMeta {key : r_account , is_writeable : true , is_signer : true },
+    ];
+
+    // let transaction_accounts = AccountInvolvedInTransaction {
+    //     is_writeable_accounts : vec![w_account,r_account],
+    //     non_writeable_accounts : vec![r_account]
+    // };
 
 
-    let transaction_accounts_2 = AccountInvolvedInTransaction {
-        is_writeable_accounts : vec![w_account,r_account],
-        non_writeable_accounts : vec![r_account]
-    };
+    // let transaction_accounts_2 = AccountInvolvedInTransaction {
+    //     is_writeable_accounts : vec![w_account,r_account],
+    //     non_writeable_accounts : vec![r_account]
+    // };
 
-    let transaction_accounts_3 = AccountInvolvedInTransaction {
-        is_writeable_accounts : vec![r_account],
-        non_writeable_accounts : vec![]
-    };
+    // let transaction_accounts_3 = AccountInvolvedInTransaction {
+    //     is_writeable_accounts : vec![r_account],
+    //     non_writeable_accounts : vec![]
+    // };
 
     let mut lineup_queue = LineUpQueue::default();
     let mut thread_aware_locks = ThreadAwareLocks::new(4);
     let mut transaction_on_thread = TransactionsOnThread::default();
     
-    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts, transaction_metadata , &mut app_user_base,program_id , "user1".to_string());
-    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts_2, transaction_metadata_2 , &mut app_user_base,program_id , "user1".to_string());
-    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_accounts_3, transaction_metadata_3 , &mut app_user_base,program_id , "user1".to_string());
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_account_meta, transaction_metadata , &mut app_user_base,program_id , "user1".to_string());
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_account_meta_2, transaction_metadata_2 , &mut app_user_base,program_id , "user1".to_string());
+    chain_trnasaction.push_new_transaction_to_the_main_queue(&mut lineup_queue, transaction_account_meta_3, transaction_metadata_3 , &mut app_user_base,program_id , "user1".to_string());
 
    chain_trnasaction.put_all_the_transaction_in_the_lineup_queue(&mut lineup_queue);
 

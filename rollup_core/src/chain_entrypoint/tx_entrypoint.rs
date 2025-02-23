@@ -1,5 +1,6 @@
 use std::{collections::HashMap, default, hash::DefaultHasher};
 use std::hash::{Hash, Hasher};
+use solana_sdk::account;
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::{TransactionMetadata, TransactionType}}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
@@ -15,6 +16,13 @@ use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQ
 // shimmer algo
 
 #[derive(Debug)]
+pub struct AccountsMeta {
+    pub key : Pubkey,
+    pub is_writeable : bool,
+    pub is_signer : bool
+}
+
+#[derive(Debug)]
 pub struct  MakeTransaction {
     pub id : u64,
     pub accounts : AccountInvolvedInTransaction,
@@ -22,6 +30,7 @@ pub struct  MakeTransaction {
     pub transaction_metadata : TransactionMetadata,
     pub from_key : Keypair,
 }
+
 
 #[derive(Debug)]
 pub struct ChainTransaction {
@@ -67,15 +76,31 @@ impl Default for ChainTransaction  {
 
 impl ChainTransaction {
 
-    pub fn create_new_transaction(&mut self,id:u64,account : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : TransactionMetadata , user: &mut AppUserBase , program_id : Pubkey , user_name : String) -> MakeTransaction  {
+    pub fn convert_account_meta_to_acc_inv_txs(&mut self,accounts : Vec<AccountsMeta>) -> AccountInvolvedInTransaction {
+        let mut writeable_accounts = Vec::new();
+        let mut non_writeable_accounts  =  Vec::new();
+
+        for account in accounts {
+            if account.is_writeable {
+                writeable_accounts.push(account.key);
+            } else {
+                non_writeable_accounts.push(account.key);
+            }
+        }
+
+        AccountInvolvedInTransaction {
+            is_writeable_accounts : writeable_accounts,
+            non_writeable_accounts : non_writeable_accounts
+        }
+}   
+
+
+    pub fn create_new_transaction(&mut self,id:u64, accounts : AccountInvolvedInTransaction , priority : u64 , transaction_metadata : TransactionMetadata , user: &mut AppUserBase , program_id : Pubkey , user_name : String) -> MakeTransaction  {
         let from_key = user.get_keypair_from_user_name(program_id, user_name);
         println!("{:?}",from_key.pubkey());
         self.chain_transaction.insert(id, MakeTransaction {
             id : id,
-            accounts : AccountInvolvedInTransaction {
-                is_writeable_accounts : account.is_writeable_accounts.clone(),
-                non_writeable_accounts : account.non_writeable_accounts.clone()
-            },
+            accounts : accounts.clone(),
             priority_level : priority,
             transaction_metadata : transaction_metadata.clone(),
             from_key : from_key.insecure_clone(),
@@ -83,23 +108,18 @@ impl ChainTransaction {
         });   
         MakeTransaction {
             id : id,
-            accounts : AccountInvolvedInTransaction {
-                is_writeable_accounts : account.is_writeable_accounts,
-                non_writeable_accounts : account.non_writeable_accounts
-            },
+            accounts : accounts,
             priority_level : priority,
             transaction_metadata,
             from_key: from_key.insecure_clone(),
         }     
     }
 
-    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : AccountInvolvedInTransaction , transaction_metadata : TransactionMetadata, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String) {
+    pub fn push_new_transaction_to_the_main_queue(&mut self, lineup_queue : &mut LineUpQueue, account : Vec<AccountsMeta> , transaction_metadata : TransactionMetadata, app_user_base : &mut AppUserBase , program_id : Pubkey , user_name : String) {
         //create a new transaction and get everything to put in the add_queue func.
         let hashed_id = self.create_hash(transaction_metadata.clone());
-        let new_transaction = self.create_new_transaction(hashed_id, AccountInvolvedInTransaction{
-            is_writeable_accounts : account.is_writeable_accounts,
-            non_writeable_accounts : account.non_writeable_accounts
-        },1 , 
+        let account_involved_in_transaction = self.convert_account_meta_to_acc_inv_txs(account);
+        let new_transaction = self.create_new_transaction(hashed_id, account_involved_in_transaction ,1 , 
         match transaction_metadata.txs_type {
             TransactionType::Transfer => {
                 TransactionMetadata {

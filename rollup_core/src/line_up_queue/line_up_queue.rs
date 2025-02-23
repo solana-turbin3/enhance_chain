@@ -5,6 +5,7 @@ const PER_LINEUP_BUDGET : u32 = 1;
 
 const TOTAL_RESCHEDUABLE_BUDGET : u32  = 5;
 const PER_RESCHEDUABLE_BUDGET : u32 = 1;
+
 #[derive(Debug,Clone,PartialEq)]
 pub struct AccountInvolvedInTransaction {
     pub is_writeable_accounts : Vec<Pubkey>,
