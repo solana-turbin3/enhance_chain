@@ -124,6 +124,12 @@ pub fn generate_base_chain_instructions(transactions: &[TransactionMetadata]) ->
                
                    
                 if let Some(mint) = transaction.keys[1] {
+                     // Metadata structure for transfer
+                    //     payer //0
+                    //     mint, //1
+                    //     from, //2
+                    //     to, //3
+                    //     amount, //0 in args
                     let source_pubkey = get_associated_token_address(&transaction.keys[2].unwrap(), &transaction.keys[1].unwrap());
                     let destination_pubkey = get_associated_token_address(&transaction.keys[3].unwrap(), &transaction.keys[1].unwrap());
                     return spl_token::instruction::transfer(
