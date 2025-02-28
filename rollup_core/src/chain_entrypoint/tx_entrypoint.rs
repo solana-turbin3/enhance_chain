@@ -17,7 +17,7 @@ use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQ
 // shimmer algo
 
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 pub struct AccountsMeta {
     pub key : Pubkey,
     pub is_writeable : bool,

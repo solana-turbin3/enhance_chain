@@ -1,5 +1,9 @@
+use std::collections::HashMap;
+
 use actix_web::web::get;
-use solana_sdk::pubkey::{self, Pubkey};
+use solana_sdk::{pubkey::{self, Pubkey}, reserved_account_keys};
+
+use super::tx_entrypoint::AccountsMeta;
 
 #[derive(Debug,Clone,Copy)]
 pub struct InstructionAccount {
@@ -21,7 +25,7 @@ pub struct InstructionContext {
 
 #[derive(Debug,Clone)]
 pub struct TransactionContext {
-    pub account_keys: Vec<Pubkey>,
+    pub account_keys: Vec<AccountsMeta>,
     //pub accounts: Rc<TransactionAccounts>,
     // instruction_stack_capacity: usize,
     // instruction_trace_capacity: usize,
@@ -97,30 +101,35 @@ impl InstructionContext {
 
 impl TransactionContext {
 
-    pub fn fill_accounts(&mut self,account_keys : Vec<Pubkey>) {
+    pub fn fill_accounts(&mut self,account_keys : Vec<AccountsMeta>) {
         self.account_keys = account_keys
     }
 
-    // normalize
-    //TODO://
+    pub fn create_native_and_main_ins_account(&mut self, account_keys : Vec<AccountsMeta> , instruction_context :  &mut InstructionContext) {
+        let mut duplicate_account : HashMap<Pubkey,usize> = HashMap::new();
 
-    pub fn create_native_and_main_ins_account(&mut self, account_keys : Vec<Pubkey> , instruction_context :  &mut InstructionContext) {
-        let mut duplicate_indicies : Vec<usize> = Vec::new();
-
-        for account in account_keys {
-            let index_in_transaction = self.get_index_of_transaction(&account);
+        for (index,account) in account_keys.clone().iter().enumerate() {
+            let index_in_transaction = self.get_index_of_transaction(&account.key);
             let stack_height = instruction_context.get_context_stack_height();
-            if duplicate_indicies.contains(&index_in_transaction) {
-                instruction_context.create_main_instruction_account_for_transaction(index_in_transaction, false, true, stack_height);
+            if duplicate_account.contains_key(&account.key) {
+                let index = duplicate_account.get(&account.key).unwrap();
+                let mut instruction_account = *instruction_context.instruction_accounts.get(*index).unwrap();
+               
+                //normalize
+                instruction_account.is_writeable |= account.is_writeable;
+                instruction_account.is_signer |= account.is_signer;
+
+
             } else {
                 instruction_context.create_native_instruction_account_for_transaction(index_in_transaction, true, true);
-                duplicate_indicies.push(index_in_transaction);
+                instruction_context.create_main_instruction_account_for_transaction(index_in_transaction, account_keys[index].is_signer, account_keys[index].is_writeable, stack_height);
+                duplicate_account.insert(account.key,instruction_context.instruction_accounts.len());
             }
         }
 
     }
 
-    pub fn main(&mut self , instruction_context : &mut InstructionContext ,transaction_accounts : Vec<Pubkey>) {
+    pub fn main(&mut self , instruction_context : &mut InstructionContext ,transaction_accounts : Vec<AccountsMeta>) {
         self.create_native_and_main_ins_account(transaction_accounts.clone(), instruction_context);
         for account in transaction_accounts {
             self.check_for_accounts_permission_previlage_mismatch(instruction_context.clone(), account);
@@ -128,15 +137,15 @@ impl TransactionContext {
     }
 
     pub fn get_index_of_transaction(&mut self , account : &Pubkey) -> usize {
-        let index = self.account_keys.iter().position(|&key| &key == account).unwrap();
+        let index = self.account_keys.iter().position(|key| &key.key == account).unwrap();
         index
     }
 
-    pub fn check_for_accounts_permission_previlage_mismatch(&mut self,instruction_context :  InstructionContext,account:Pubkey) {
+    pub fn check_for_accounts_permission_previlage_mismatch(&mut self,instruction_context :  InstructionContext,account:AccountsMeta) {
+        
         println!("{:?}",instruction_context);
-
         for instruction_account in instruction_context.instruction_accounts.iter() {
-                let native_instruction = self.get_native_ins_account(instruction_context.clone(),account).unwrap();
+                let native_instruction = self.get_native_ins_account(instruction_context.clone(),account.key).unwrap();
                 println!("native_ins{:?}",native_instruction);
                 if native_instruction.is_writeable != instruction_account.is_writeable {
                     panic!("Writeable previlage esclated")
@@ -163,7 +172,7 @@ impl TransactionContext {
 mod test {
     use solana_sdk::{signature::Keypair, signer::{keypair, Signer}};
 
-    use crate::chain_entrypoint::transaction_context::TransactionContext;
+    use crate::chain_entrypoint::{transaction_context::TransactionContext, tx_entrypoint::AccountsMeta};
 
     use super::{InstructionAccount, InstructionContext};
 
@@ -175,13 +184,16 @@ mod test {
         let kp1 = Keypair::new().pubkey();
         let kp2 = Keypair::new().pubkey();
 
-        let transaction_accounts = vec![
-            kp1,
-            kp2,
-            kp1
+        let mut transaction_account_meta = vec![
+            AccountsMeta::create_new_meta_with_signer(kp1, true),
+            AccountsMeta::create_new_meta_with_signer(kp2, true),
+            AccountsMeta::create_new_meta_with_signer(kp2, false)
         ];
 
-        transaction_context.fill_accounts(transaction_accounts.clone());
-        transaction_context.main(&mut instruction_context,transaction_accounts);
+        // let new_account_meta = transaction_context.normalize_account_preveliges(&mut transaction_account_meta);
+        // println!("weee {:?}",new_account_meta);
+
+        transaction_context.fill_accounts(transaction_account_meta.clone());
+        transaction_context.main(&mut instruction_context,transaction_account_meta);
     } 
 }
