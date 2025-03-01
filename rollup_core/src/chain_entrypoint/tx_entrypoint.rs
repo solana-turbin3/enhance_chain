@@ -116,7 +116,7 @@ impl ChainTransaction {
         let per_instruction_context = &mut InstructionContext::default();
         let mut per_transaction_context = TransactionContext::default();
 
-        let native_writable_privilages = vec![true,true,true];
+        let native_writable_privilages = vec![true,true,true,true];
 
         per_transaction_context.handle_transaction_context(per_instruction_context, accounts_meta_for_the_per_transaction, native_writable_privilages);
     }
