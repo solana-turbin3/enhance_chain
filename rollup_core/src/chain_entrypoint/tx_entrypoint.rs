@@ -5,6 +5,8 @@ use solana_sdk::instruction::InstructionError;
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 use crate::{line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::{engine::PayTubeChannel, setup::{system_account, TestValidatorContext}, transaction::{TransactionMetadata, TransactionType}}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
+use super::transaction_context::{InstructionContext, TransactionContext};
+
 
 // hash done
 // eunum done 
@@ -106,38 +108,18 @@ impl ChainTransaction {
         }
 }   
 
-    // pub fn account_previlage_normalization_and_previlage_checker(&mut self,accounts : Vec<AccountsMeta>) {
-    //     let mut duplicated_instruction_account : Vec<InstructionAccount> = Vec::new();
-    //     let mut duplicate_indicies : Vec<usize> = Vec::new();
-        
-    //     for (instruction_account_account_index , account_meta) in accounts.iter().enumerate() {
-    //         let index_in_transaction = instruction_account_account_index;
+    pub fn account_previlage_normalization_and_previlage_checker(&mut self,accounts_meta_for_the_per_transaction : Vec<AccountsMeta>) {
 
-    //         if let Some(duplicate_index) = duplicated_instruction_account
-    //         .iter()
-    //         .position(|instruction_account| {
-    //             instruction_account.index_in_transaction == index_in_transaction
-    //         }) {
-    //             duplicate_indicies.push(duplicate_index);
-    //             let instruction_account = duplicated_instruction_account
-    //             .get_mut(duplicate_index)
-    //             .ok_or(InstructionError::NotEnoughAccountKeys)?;
-    //         instruction_account.is_signer |= account_meta.is_signer;
-    //         instruction_account.is_writeable |= account_meta.is_writeable;
-    //         } else {
-    //             let index_in_caller = 0;
-    //             duplicate_indicies.push(duplicated_instruction_account.len());
-    //             duplicated_instruction_account.push(InstructionAccount {
-    //                 index_in_transaction : index_in_transaction,
-    //                 index_in_caller,
-    //                 index_in_callee : instruction_account_account_index,
-    //                 is_signer : account_meta.is_signer,
-    //                 is_writeable : account_meta.is_writeable
-    //             });
-    //         }
+        // TODO://
+        // Currently only support transafer transaction
 
-    //     }
-    // }
+        let per_instruction_context = &mut InstructionContext::default();
+        let mut per_transaction_context = TransactionContext::default();
+
+        let native_writable_privilages = vec![true,true,true];
+
+        per_transaction_context.handle_transaction_context(per_instruction_context, accounts_meta_for_the_per_transaction, native_writable_privilages);
+    }
 
 
 
@@ -211,17 +193,6 @@ impl ChainTransaction {
     pub fn clear_lineup_queue(&mut self,lineup_queue : &mut LineUpQueue) {
         lineup_queue.clear_lineup_queue_for_next_batch();
     }
-
-    //Optimiization while scheduling
-    // pub fn normalize_accounts_previalges(&mut self , write_prevelaged_accounts : Vec<Pubkey> , mut read_prevelaged_account : Vec<Pubkey>)  -> Vec<Pubkey> {
-    //     for account in read_prevelaged_account.clone() {
-    //         if write_prevelaged_accounts.contains(&account) {
-    //             let index = read_prevelaged_account.iter().position(|&key| &key == &account).unwrap();
-    //             read_prevelaged_account.remove(index);
-    //         }
-    //     }
-    //     read_prevelaged_account
-    // }
 
     
     pub fn take_out_individual_transaction_and_apply_RWlocks(&mut self,lineup_queue : &mut LineUpQueue, thread_aware_locks : &mut ThreadAwareLocks , transaction_on_thread : &mut TransactionsOnThread , thread_load_counter : &mut ThreadLoadCounter) {

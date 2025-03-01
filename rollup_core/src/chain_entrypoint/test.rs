@@ -1,6 +1,6 @@
 use solana_sdk::{pubkey::Pubkey, signature::Keypair, signer::Signer};
 
-use crate::{chain_entrypoint::tx_entrypoint::TransactionsOnThread, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::{TransactionMetadata, TransactionType}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
+use crate::{chain_entrypoint::{transaction_context::TransactionContext, tx_entrypoint::TransactionsOnThread}, line_up_queue::line_up_queue::{AccountInvolvedInTransaction, LineUpQueue}, processor::transaction::{TransactionMetadata, TransactionType}, scheduler::read_write_locks::{ThreadAwareLocks, ThreadLoadCounter}, users_handler::user_handler::AppUserBase};
 
 use super::tx_entrypoint::{AccountsMeta, ChainTransaction};
 
@@ -25,6 +25,7 @@ fn test_full_flow() {
 
     let w_account = Keypair::new().pubkey();  
     let r_account = Keypair::new().pubkey();
+    let r_waccount = Keypair::new().pubkey();
     let to1 = Keypair::new();
     let to2 = Keypair::new();
     let to3 = Keypair::new();
@@ -70,20 +71,29 @@ fn test_full_flow() {
     };
 
     let transaction_account_meta = vec![
+        AccountsMeta::create_new_meta_with_signer(r_waccount, true),
         AccountsMeta::create_new_meta_with_signer(w_account, true),
         AccountsMeta::create_new_meta_with_signer(r_account, true),
-        AccountsMeta::create_new_meta_with_signer(r_account, false),
+        AccountsMeta::create_new_meta_with_signer(r_account, true),
     ];
 
     let transaction_account_meta_2 = vec![
         AccountsMeta::create_new_meta_with_signer(w_account, true),
         AccountsMeta::create_new_meta_with_signer(r_account, true),
-        AccountsMeta::create_new_meta_with_signer(r_account, false)
+        AccountsMeta::create_new_meta_with_signer(r_account, true),
+        AccountsMeta::create_new_meta_with_signer(r_account, true)
     ];
 
     let transaction_account_meta_3 = vec![
         AccountsMeta::create_new_meta_with_signer(r_account, true),
+        AccountsMeta::create_new_meta_with_signer(r_account, true),
+        AccountsMeta::create_new_meta_with_signer(r_account, true),
+        AccountsMeta::create_new_meta_with_signer(r_account, true),
     ];
+
+    chain_trnasaction.account_previlage_normalization_and_previlage_checker(transaction_account_meta.clone());
+    chain_trnasaction.account_previlage_normalization_and_previlage_checker(transaction_account_meta_2.clone());
+    chain_trnasaction.account_previlage_normalization_and_previlage_checker(transaction_account_meta_3.clone());
 
     let mut lineup_queue = LineUpQueue::default();
     let mut thread_aware_locks = ThreadAwareLocks::new(4);

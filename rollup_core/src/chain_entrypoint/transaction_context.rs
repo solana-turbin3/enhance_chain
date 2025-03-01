@@ -101,8 +101,9 @@ impl InstructionContext {
 impl TransactionContext {
 
     // main handler function to create native and main instruction_account for individual account
-    pub fn handle_transaction_context(&mut self , instruction_context : &mut InstructionContext ,transaction_accounts : Vec<AccountsMeta>) {
-        self.create_native_and_main_ins_account(transaction_accounts.clone(), instruction_context);
+    pub fn handle_transaction_context(&mut self , instruction_context : &mut InstructionContext ,transaction_accounts : Vec<AccountsMeta>, native_writeable_privilages : Vec<bool>) {
+        self.fill_accounts(transaction_accounts.clone());
+        self.create_native_and_main_ins_account(transaction_accounts.clone(), instruction_context , native_writeable_privilages);
         for account in transaction_accounts {
             // now checks the account privilages
             self.check_for_accounts_permission_previlage_mismatch(instruction_context.clone(), account);
@@ -114,7 +115,8 @@ impl TransactionContext {
         self.account_keys = accounts_meta
     }
 
-    pub fn create_native_and_main_ins_account(&mut self, account_meta : Vec<AccountsMeta> , instruction_context :  &mut InstructionContext) {
+    pub fn create_native_and_main_ins_account(&mut self, account_meta : Vec<AccountsMeta> , instruction_context :  &mut InstructionContext , native_writeable_privilages : Vec<bool>
+    ) {
         let mut duplicate_account : HashMap<Pubkey,usize> = HashMap::new();
 
         for (index,accounts_meta) in account_meta.clone().iter().enumerate() {
@@ -133,7 +135,7 @@ impl TransactionContext {
 
 
             } else {
-                instruction_context.create_native_instruction_account_for_transaction(index_in_transaction, true, true);
+                instruction_context.create_native_instruction_account_for_transaction(index_in_transaction, true, native_writeable_privilages[index]);
                 instruction_context.create_main_instruction_account_for_transaction(index_in_transaction, account_meta[index].is_signer, account_meta[index].is_writeable, stack_height);
                 duplicate_account.insert(accounts_meta.key,instruction_context.instruction_accounts.len()-1);
             }
@@ -149,9 +151,9 @@ impl TransactionContext {
     }
 
     // match account privilage checks from the native and user_provided instruction_account
-    pub fn check_for_accounts_permission_previlage_mismatch(&mut self,instruction_context :  InstructionContext,account:AccountsMeta) {
+    pub fn check_for_accounts_permission_previlage_mismatch(&mut self,instruction_context :  InstructionContext,accounts:AccountsMeta) {
         for instruction_account in instruction_context.instruction_accounts.iter() {
-                let native_instruction = self.get_native_ins_account(instruction_context.clone(),account.key).unwrap();
+                let native_instruction = self.get_native_ins_account(instruction_context.clone(),accounts.key).unwrap();
                 if native_instruction.is_writeable != instruction_account.is_writeable {
                     panic!("Writeable previlage esclated")
                 }
@@ -199,8 +201,14 @@ pub mod test {
             AccountsMeta::create_new_meta_with_signer(kp2, false)
         ];
 
-        transaction_context.fill_accounts(transaction_account_meta.clone());
-        transaction_context.handle_transaction_context(&mut instruction_context,transaction_account_meta);
+        let native_writeable_privilage = vec![true,true];
+
+        // assert_eq!(
+        //     transaction_account_meta.len(),
+        //     native_writeable_privilage.len()
+        // );
+
+        transaction_context.handle_transaction_context(&mut instruction_context,transaction_account_meta , native_writeable_privilage);
     } 
 
     #[test]
@@ -221,7 +229,13 @@ pub mod test {
             AccountsMeta::create_new_meta_with_signer(kp1, false)
         ];
 
-        transaction_context.fill_accounts(transaction_account_meta.clone());
-        transaction_context.handle_transaction_context(&mut instruction_context,transaction_account_meta);
+        let native_writeable_privilage = vec![true,true,true];
+
+        assert_eq!(
+            transaction_account_meta.len(),
+            native_writeable_privilage.len()
+        );
+
+        transaction_context.handle_transaction_context(&mut instruction_context,transaction_account_meta , native_writeable_privilage);
     } 
 }

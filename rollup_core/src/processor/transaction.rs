@@ -1,5 +1,5 @@
 use {
-    serde::de, solana_sdk::{
+    crate::chain_entrypoint::transaction_context::TransactionContext, serde::de, solana_sdk::{
         instruction::Instruction as SolanaInstruction, pubkey::Pubkey, signature::Keypair, system_instruction, transaction::{
             SanitizedTransaction as SolanaSanitizedTransaction, Transaction as SolanaTransaction,
         }
@@ -43,7 +43,7 @@ impl From<&TransactionMetadata> for SolanaInstruction {
                         &source_pubkey,
                         &destination_pubkey,
                         &value.keys[2].unwrap(),
-                        &[],
+                        &[&source_pubkey],
                         value.args[0],
                     )
                     .unwrap();
