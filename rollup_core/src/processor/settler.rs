@@ -1,12 +1,17 @@
 use {
-    super::transaction::TransactionMetadata, solana_client::{rpc_client::RpcClient, rpc_config::RpcSendTransactionConfig}, solana_sdk::{
+    super::transaction::TransactionMetadata,
+    solana_client::{rpc_client::RpcClient, rpc_config::RpcSendTransactionConfig},
+    solana_sdk::{
         commitment_config::CommitmentConfig, instruction::Instruction as SolanaInstruction,
         pubkey::Pubkey, signature::Keypair, signer::Signer, system_instruction,
         transaction::Transaction as SolanaTransaction,
-    }, solana_svm::{
+    },
+    solana_svm::{
         transaction_processing_result::TransactionProcessingResultExtensions,
         transaction_processor::LoadAndExecuteSanitizedTransactionsOutput,
-    }, spl_associated_token_account::get_associated_token_address, std::collections::HashMap
+    },
+    spl_associated_token_account::get_associated_token_address,
+    std::collections::HashMap,
 };
 
 // #[derive(PartialEq, Eq, Hash)]
@@ -20,38 +25,37 @@ use {
 // }
 
 //impl Ledger {
-    // fn new(
-    //     paytube_transactions: &[TransactionMetadata],
-    //     svm_output: LoadAndExecuteSanitizedTransactionsOutput,
-    // ) -> Self {
-    //     let mut ledger: HashMap<LedgerKey, i128> = HashMap::new();
-    //     paytube_transactions
-    //         .iter()
-    //         .zip(svm_output.processing_results)
-    //         .for_each(|(transaction, result)| {
-    //             // Only append to the ledger if the PayTube transaction was
-    //             // successful.
-    //             if result.was_processed_with_successful_result() {
-    //                 let mint = transaction.mint;
-    //                 let mut keys = [transaction.from, transaction.to];
-    //                 keys.sort();
-    //                 let amount = if keys.iter().position(|k| k.eq(&transaction.from)).unwrap() == 0
-    //                 {
-    //                     transaction.amount as i128
-    //                 } else {
-    //                     (transaction.amount as i128)
-    //                         .checked_neg()
-    //                         .unwrap_or_default()
-    //                 };
-    //                 ledger
-    //                     .entry(LedgerKey { mint, keys })
-    //                     .and_modify(|e| *e = e.checked_add(amount).unwrap())
-    //                     .or_insert(amount);
-    //             }
-    //         });
-    //     Self { ledger }
-    // }
-
+// fn new(
+//     paytube_transactions: &[TransactionMetadata],
+//     svm_output: LoadAndExecuteSanitizedTransactionsOutput,
+// ) -> Self {
+//     let mut ledger: HashMap<LedgerKey, i128> = HashMap::new();
+//     paytube_transactions
+//         .iter()
+//         .zip(svm_output.processing_results)
+//         .for_each(|(transaction, result)| {
+//             // Only append to the ledger if the PayTube transaction was
+//             // successful.
+//             if result.was_processed_with_successful_result() {
+//                 let mint = transaction.mint;
+//                 let mut keys = [transaction.from, transaction.to];
+//                 keys.sort();
+//                 let amount = if keys.iter().position(|k| k.eq(&transaction.from)).unwrap() == 0
+//                 {
+//                     transaction.amount as i128
+//                 } else {
+//                     (transaction.amount as i128)
+//                         .checked_neg()
+//                         .unwrap_or_default()
+//                 };
+//                 ledger
+//                     .entry(LedgerKey { mint, keys })
+//                     .and_modify(|e| *e = e.checked_add(amount).unwrap())
+//                     .or_insert(amount);
+//             }
+//         });
+//     Self { ledger }
+// }
 
 //}
 
@@ -117,37 +121,42 @@ impl<'a> PayTubeSettler<'a> {
     }
 }
 
-
-pub fn generate_base_chain_instructions(transactions: &[TransactionMetadata]) -> Vec<SolanaInstruction> {
-        transactions
-            .iter()
-            .map(|transaction|{
-               
-                   
-                if let Some(mint) = transaction.keys[1] {
-                     // Metadata structure for transfer
-                    //     payer //0
-                    //     mint, //1
-                    //     from, //2
-                    //     to, //3
-                    //     amount, //0 in args
-                    let source_pubkey = get_associated_token_address(&transaction.keys[2].unwrap(), &transaction.keys[1].unwrap());
-                    let destination_pubkey = get_associated_token_address(&transaction.keys[3].unwrap(), &transaction.keys[1].unwrap());
-                    return spl_token::instruction::transfer(
-                        &spl_token::id(),
-                        &source_pubkey,
-                        &destination_pubkey,
-                        &transaction.keys[2].unwrap(),
-                        &[],
-                        transaction.args[0],
-                    )
-                    .unwrap();
-                }
-                system_instruction::transfer(&transaction.keys[2].unwrap(), &transaction.keys[3].unwrap(), transaction.args[0])
-                  
-
-                
-            })
-            .collect::<Vec<_>>()
-    
+pub fn generate_base_chain_instructions(
+    transactions: &[TransactionMetadata],
+) -> Vec<SolanaInstruction> {
+    transactions
+        .iter()
+        .map(|transaction| {
+            if let Some(mint) = transaction.keys[1] {
+                // Metadata structure for transfer
+                //     payer //0
+                //     mint, //1
+                //     from, //2
+                //     to, //3
+                //     amount, //0 in args
+                let source_pubkey = get_associated_token_address(
+                    &transaction.keys[2].unwrap(),
+                    &transaction.keys[1].unwrap(),
+                );
+                let destination_pubkey = get_associated_token_address(
+                    &transaction.keys[3].unwrap(),
+                    &transaction.keys[1].unwrap(),
+                );
+                return spl_token::instruction::transfer(
+                    &spl_token::id(),
+                    &source_pubkey,
+                    &destination_pubkey,
+                    &transaction.keys[2].unwrap(),
+                    &[],
+                    transaction.args[0],
+                )
+                .unwrap();
+            }
+            system_instruction::transfer(
+                &transaction.keys[2].unwrap(),
+                &transaction.keys[3].unwrap(),
+                transaction.args[0],
+            )
+        })
+        .collect::<Vec<_>>()
 }

@@ -5,7 +5,7 @@ use std::{
 
 use actix_web::{error, web, HttpResponse};
 use async_channel::{Receiver, Send, Sender};
-use crossbeam::channel::{Sender as CBSender, Receiver as CBReceiver};
+use crossbeam::channel::{Receiver as CBReceiver, Sender as CBSender};
 use serde::{Deserialize, Serialize};
 use solana_sdk::keccak::Hash;
 use solana_sdk::transaction::Transaction;
@@ -42,10 +42,7 @@ pub async fn submit_transaction(
     log::info!("{body:?}");
 
     // Send transaction to sequencer
-    sequencer_sender
-        .send(body.sol_transaction.clone())
-        
-        .unwrap();
+    sequencer_sender.send(body.sol_transaction.clone()).unwrap();
 
     // Return response
     Ok(HttpResponse::Ok().json(HashMap::from([("Transaction status", "Submitted")])))

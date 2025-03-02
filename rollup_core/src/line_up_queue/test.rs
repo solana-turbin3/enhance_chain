@@ -8,7 +8,7 @@
 //     let mut line_up_queue = LineUpQueue::default();
 //     let txs = Transaction::default();
 //     line_up_queue.add_to_line_up(1, txs, 6);
-//     assert_eq!(line_up_queue.lineup_queue.len(),2); 
+//     assert_eq!(line_up_queue.lineup_queue.len(),2);
 // }
 
 // #[test]
@@ -16,7 +16,7 @@
 //     let mut line_up_queue = LineUpQueue::default();
 //     let txs = Transaction::default();
 //     line_up_queue.add_to_line_up(1, txs, 6);
-//     assert_eq!(line_up_queue.lineup_queue.len(),2); 
+//     assert_eq!(line_up_queue.lineup_queue.len(),2);
 
 //     let line_up = line_up_queue.get_the_line_up();
 //     println!("{:?}", line_up)
@@ -29,7 +29,6 @@
 //     let txs = Transaction::default();
 //     line_up_queue.add_to_line_up(1, txs, 6);
 //     assert_eq!(line_up_queue.lineup_queue.len(),2);
-
 
 //     let sorted_lineup = line_up_queue.sort_linup_queue_according_to_priority();
 //     println!("{:?}",sorted_lineup);
@@ -57,7 +56,7 @@
 //             }
 //         );
 //     }
-    
+
 //     line_up_queue.add_to_line_up();
 //     assert_eq!(
 //         line_up_queue.main_queue.len(),

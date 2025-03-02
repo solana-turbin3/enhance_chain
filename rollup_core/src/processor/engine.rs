@@ -1,12 +1,12 @@
-
+use super::loader::PayTubeAccountLoader;
 use crate::processor::settler::PayTubeSettler;
 use crate::processor::transaction::TransactionMetadata;
-use super::loader::PayTubeAccountLoader;
 
-use {  
+use {
     crate::processor::processor::{
         create_transaction_batch_processor, get_transaction_check_results, PayTubeForkGraph,
     },
+    crate::processor::transaction::create_svm_transactions,
     solana_client::rpc_client::RpcClient,
     solana_compute_budget::compute_budget::ComputeBudget,
     solana_sdk::{
@@ -17,7 +17,6 @@ use {
         TransactionProcessingConfig, TransactionProcessingEnvironment,
     },
     std::sync::{Arc, RwLock},
-    crate::processor::transaction::create_svm_transactions,
 };
 
 /// A PayTube channel instance.
@@ -29,7 +28,6 @@ pub struct PayTubeChannel {
     keys: Vec<Keypair>,
     rpc_client: RpcClient,
 }
-
 
 impl PayTubeChannel {
     pub fn new(keys: Vec<Keypair>, rpc_client: RpcClient) -> Self {
@@ -60,8 +58,12 @@ impl PayTubeChannel {
 
         // Solana SVM transaction batch processor.
         let fork_graph = Arc::new(RwLock::new(PayTubeForkGraph {}));
-        let processor =
-            create_transaction_batch_processor(&account_loader, &feature_set, &compute_budget,Arc::clone(&fork_graph));
+        let processor = create_transaction_batch_processor(
+            &account_loader,
+            &feature_set,
+            &compute_budget,
+            Arc::clone(&fork_graph),
+        );
 
         // The PayTube transaction processing runtime environment.
         let processing_environment = TransactionProcessingEnvironment {
