@@ -1,4 +1,8 @@
-use solana_sdk::{signature::Keypair, signer::Signer};
+use std::io::Cursor;
+use spl_token::state::{Account as TokenAccount, Mint};
+use solana_sdk::{program_pack::Pack, signature::Keypair, signer::Signer};
+use spl_associated_token_account::get_associated_token_address;
+use tokio::io::AsyncReadExt;
 
 use super::accounts_db::AccountsDB;
 
@@ -16,3 +20,22 @@ pub fn test_new_account_init() {
 
      println!("{:?}",account_db);
 }
+
+#[test]
+pub fn create_new_token_account() {
+    let mut account_db = AccountsDB::default();
+    let owner = Keypair::new().pubkey();
+    let mint  = Keypair::new().pubkey();
+
+    let account = get_associated_token_address(&owner, &mint);
+
+    account_db.create_new_token_account(&owner, &mint, 10);
+
+    let new_account_data = account_db.get_account_data(&account);
+
+    let new_account_data= TokenAccount::unpack(&new_account_data.data).unwrap();
+    println!("unpack{:?}",new_account_data);
+   
+    println!("account_db {:?}", account_db)    
+}
+

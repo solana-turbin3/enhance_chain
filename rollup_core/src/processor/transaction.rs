@@ -20,6 +20,9 @@ pub enum TransactionType {
 
 #[derive(Clone,Debug,Hash)]
 pub struct TransactionMetadata {
+    // program_id
+    // accounts
+    // data
     pub txs_type : TransactionType,
     pub keys : Vec<Option<Pubkey>>,
     pub args : Vec<u64>

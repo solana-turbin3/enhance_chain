@@ -7,11 +7,11 @@ use solana_sdk::{program_pack::Pack, pubkey::Pubkey, signature::Keypair, signer:
 #[derive(PartialEq, Eq, Clone,Default,Debug)]
 pub struct AccountSharedData {
     /// lamports in the account
-    lamports: u64,
+    pub lamports: u64,
     /// data held in this account
-    data: Vec<u8>,
+    pub data: Vec<u8>,
     /// the program that owns this account. If executable, the program that loads this account.
-    owner: Pubkey,
+    pub owner: Pubkey,
     // this account's data contains a loaded program (and is now read-only)
     //executable: bool,
     // the epoch at which this account will next owe rent
@@ -38,11 +38,12 @@ impl AccountsDB {
 
     pub fn flush_new_account_into_db(&mut self,pubkey : Pubkey,account_shared_data : AccountSharedData) {
 
-        if let Some(account) = self.key.get(&pubkey) {
-            panic!("{:?} account alreaady exisits, cant create new",account)
-        } else {
-            self.key.insert(pubkey, account_shared_data);
-        }
+        // if let Some(account) = self.key.get(&pubkey) {
+        //     panic!("{:?} account alreaady exisits, cant create new",account)
+        // } else {
+        //     self.key.insert(pubkey, account_shared_data);
+        // }
+        self.key.insert(pubkey, account_shared_data);
     }
     
     pub fn update_data(&mut self , new_data : Vec<u8> , account : Pubkey) {
@@ -117,8 +118,8 @@ pub fn update_accounts_db_after_transfer(&mut self,from : &Pubkey , to : &Pubkey
     }
 }
 
-pub fn get_account_data(&mut self,account : &Pubkey) -> &AccountSharedData {
-let data = self.key.get(account).unwrap();
+pub fn get_account_data(&mut self,account : &Pubkey) -> AccountSharedData {
+let data = self.key.get(account).unwrap().clone();
 data
 }
 
