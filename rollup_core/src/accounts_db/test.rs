@@ -4,7 +4,7 @@ use spl_token::state::{Account as TokenAccount, Mint};
 use std::io::Cursor;
 use tokio::io::AsyncReadExt;
 
-use super::accounts_db::AccountsDB;
+use super::ram_accounts_handler::AccountsDB;
 
 #[test]
 

@@ -4,7 +4,7 @@ use spl_associated_token_account::get_associated_token_address;
 use spl_token::state::{Account as TokenAccount, Mint};
 use std::{collections::HashMap, fs::File, io::Write};
 
-use super::accounts_file_handler::AccountInFile;
+use super::disk_accounts_handler::AccountInFile;
 
 pub const DEFAULT_ACCOUNT_LAMPORTS : u64 = 100_000_000;
 

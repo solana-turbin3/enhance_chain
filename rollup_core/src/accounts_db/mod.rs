@@ -1,3 +1,3 @@
-pub mod accounts_db;
-pub mod accounts_file_handler;
+pub mod ram_accounts_handler;
+pub mod disk_accounts_handler;
 mod test;
