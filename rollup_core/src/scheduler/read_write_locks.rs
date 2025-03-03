@@ -3,6 +3,20 @@ use std::collections::HashMap;
 
 use crate::line_up_queue::line_up_queue::LineUpQueue;
 
+
+// /// Metrics from scheduling transactions.
+// #[derive(Debug, PartialEq, Eq)]
+// pub struct SchedulingSummary {
+//     /// Number of transactions scheduled.
+//     pub num_scheduled: usize,
+//     /// Number of transactions that were not scheduled due to conflicts.
+//     pub num_unschedulable: usize,
+//     /// Number of transactions that were dropped due to filter.
+//     pub num_filtered_out: usize,
+//     /// Time spent filtering transactions
+//     pub filter_time_us: u64,
+// }
+
 /// Identifier for a thread
 const MAX_THREAD: usize = 4;
 pub type ThreadId = usize;

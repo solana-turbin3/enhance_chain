@@ -2,7 +2,11 @@ use core::panic;
 use solana_sdk::{program_pack::Pack, pubkey::Pubkey, signature::Keypair, signer::Signer};
 use spl_associated_token_account::get_associated_token_address;
 use spl_token::state::{Account as TokenAccount, Mint};
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::File, io::Write};
+
+use super::accounts_file_handler::AccountInFile;
+
+pub const DEFAULT_ACCOUNT_LAMPORTS : u64 = 100_000_000;
 
 #[derive(PartialEq, Eq, Clone, Default, Debug)]
 pub struct AccountSharedData {
@@ -62,11 +66,22 @@ impl AccountsDB {
     ) -> AccountSharedData {
         let data = vec![0u8; space];
         let account_shared_data = AccountSharedData {
-            lamports: 100_000_000,
-            data,
+            lamports: DEFAULT_ACCOUNT_LAMPORTS,
+            data : data.clone(),
             owner: *owner,
         };
+
         self.flush_new_account_into_db(*account, account_shared_data.clone());
+
+        AccountInFile::add_new_account(0, *account, AccountInFile {
+            data_len : space,
+            pubkey : *account,
+            lamports : DEFAULT_ACCOUNT_LAMPORTS,
+            owner : *owner,
+            executable : true,
+            data
+        });
+
         account_shared_data
     }
 
@@ -98,6 +113,16 @@ impl AccountsDB {
         // account.set_data_from_slice(&data);
         self.flush_new_account_into_db(pubkey, account.clone());
         self.update_data(data.to_vec(), pubkey);
+
+
+        AccountInFile::add_new_account(0, pubkey, AccountInFile{
+            data_len : TokenAccount::LEN,
+            pubkey,
+            lamports : DEFAULT_ACCOUNT_LAMPORTS,
+            owner : *owner,
+            executable : true,
+            data : data.to_vec()
+        });
 
         account
     }
