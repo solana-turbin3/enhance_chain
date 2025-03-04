@@ -109,6 +109,7 @@ impl AccountsDB {
             .unwrap();
             data
         };
+        
         let pubkey = get_associated_token_address(owner, mint);
 
         let account = self.init_new_account_in_DB(&pubkey, data.len(), &spl_token::id());
