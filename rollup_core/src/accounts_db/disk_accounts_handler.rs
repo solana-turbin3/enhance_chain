@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Write};
+use std::{collections::HashMap, fs::File, io::{Read, Write}};
 use bincode;
 
 use serde::{Deserialize, Serialize};
@@ -6,7 +6,7 @@ use solana_sdk::pubkey::Pubkey;
 
 #[derive(Debug,Serialize,Deserialize)]
 pub struct AccountInFile {
-   // pub offset : u8,
+    pub offset : u8, // will act as a index as_of_now
     pub data_len : usize,
     pub pubkey : Pubkey,
     pub lamports : u64,
@@ -16,21 +16,41 @@ pub struct AccountInFile {
     //rent_epoch : RentEpoch
 }
 
-// pub struct AllAccountsInFile {
-//     // 1.Offset , 2.Data
-//     pub accounts : Vec<AccountInFile>
-// }
+pub struct AllAccountsInFile {
+    pub accounts : Vec<AccountInFile>
+}
 
-impl AccountInFile {
-    pub fn add_new_account(
+impl Default for AllAccountsInFile {
+    fn default() -> Self {
+        Self {
+            accounts : Vec::new()
+        }
+    }
+}
+
+impl AllAccountsInFile {
+
+    pub fn add_new_acconunt(
+        &mut self,
         slot : usize,
-        pubkey : Pubkey,
         account : AccountInFile
     ) {
-        let file_string = format!("snapshots/slots/{}/accounts/{}.txt",slot,pubkey);
-        let serialized_account = bincode::serialize(&account).expect("serialization failed");
+        let file_string = format!("snapshots/slots/{}/accounts/{}.txt",slot,"slot-0-block-1");
+        self.accounts.push(account);
+        let new_serialize_content = bincode::serialize(&self.accounts).expect("serialization failed");
         let mut data_file = File::create(file_string).expect("creation failed");
-        data_file.write(&serialized_account).expect("write failed");
+        data_file.write(&new_serialize_content).expect("write failed");
+    }
+
+    pub fn read_accounts_from_file(&self, slot: usize) -> Vec<AccountInFile> {
+        let file_string = format!("snapshots/slots/{}/accounts/{}.txt", slot, "slot-0-block-1");
+        
+        let mut data_file = File::open(&file_string).expect("file open failed");
+        let mut buffer = Vec::new();
+        data_file.read_to_end(&mut buffer).expect("read failed");
+        
+        let accounts: Vec<AccountInFile> = bincode::deserialize(&buffer).expect("deserialization failed");
+        accounts
     }
 }
 
@@ -44,4 +64,11 @@ fn test_basic_file_handling() {
     data_file.write("Hello, World!".as_bytes()).expect("write failed");
 
     println!("Created a file data.txt");
+}
+
+#[test]
+fn test_read_from_a_account_file() {
+    let mut all_account = AllAccountsInFile::default();
+    let data= all_account.read_accounts_from_file(0);
+    println!("data {:?}",data)
 }

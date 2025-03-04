@@ -4,7 +4,7 @@ use spl_associated_token_account::get_associated_token_address;
 use spl_token::state::{Account as TokenAccount, Mint};
 use std::{collections::HashMap, fs::File, io::Write};
 
-use super::disk_accounts_handler::AccountInFile;
+use super::disk_accounts_handler::{AccountInFile, AllAccountsInFile};
 
 pub const DEFAULT_ACCOUNT_LAMPORTS : u64 = 100_000_000;
 
@@ -73,7 +73,10 @@ impl AccountsDB {
 
         self.flush_new_account_into_db(*account, account_shared_data.clone());
 
-        AccountInFile::add_new_account(0, *account, AccountInFile {
+        let mut accounts_file_handler = AllAccountsInFile::default();
+
+        accounts_file_handler.add_new_acconunt(0, AccountInFile {
+            offset : 0,
             data_len : space,
             pubkey : *account,
             lamports : DEFAULT_ACCOUNT_LAMPORTS,
@@ -114,8 +117,10 @@ impl AccountsDB {
         self.flush_new_account_into_db(pubkey, account.clone());
         self.update_data(data.to_vec(), pubkey);
 
+        let mut accounts_file_handler = AllAccountsInFile::default();
 
-        AccountInFile::add_new_account(0, pubkey, AccountInFile{
+        accounts_file_handler.add_new_acconunt(0, AccountInFile{
+            offset : 0,
             data_len : TokenAccount::LEN,
             pubkey,
             lamports : DEFAULT_ACCOUNT_LAMPORTS,
